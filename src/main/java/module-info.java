@@ -4,5 +4,6 @@ module StingoDL {
     requires java.logging;
     requires java.net.http;
     requires java.xml;
+    requires jdk.crypto.ec;
     exports stingodl;
 }

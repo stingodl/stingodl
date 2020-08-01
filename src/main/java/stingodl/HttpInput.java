@@ -42,7 +42,7 @@ public class HttpInput {
     }
 
     public Reader getReader(URI uri) throws Exception {
-        HttpRequest req = HttpRequest.newBuilder(uri).GET().build();
+        HttpRequest req = HttpRequest.newBuilder(uri).GET().header("User-Agent","Mozilla/5.0 (compatible)").build();
         HttpResponse<InputStream> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofInputStream());
         return new InputStreamReader(resp.body());
     }
