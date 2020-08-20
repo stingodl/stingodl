@@ -25,6 +25,7 @@ public class Config {
     public String downloadDir;
     public long sbsQuickUpdateMinutes = 120;
     public long sbsFullUpdateHours = 23;
+    public boolean oneEpisodePerSeries = true;
     public transient String ffmpegVersion;
     public transient String ffmpegText;
     public transient String ffmpegCommand;

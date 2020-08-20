@@ -21,12 +21,56 @@
  ******************************************************************************/
 package stingodl;
 
-public class AbcEpisode {
+import java.util.StringTokenizer;
+
+public class AbcEpisode implements Comparable<AbcEpisode> {
     public String seriesTitle;
     public String title;
     public String pubDate;
     public String href;
+    public int series;
+    public int episode;
+    public void parseTitle() {
+        if (title != null) {
+            StringTokenizer st = new StringTokenizer(title);
+            String[] token = new String[4];
+            for (int i = 0; i < 4; i++) {
+                if (st.hasMoreTokens()) {
+                    token[i] = st.nextToken();
+                } else {
+                    token[i] = "";
+                }
+            }
+            if ("series".equalsIgnoreCase(token[0])) {
+                try {
+                    series = Integer.parseInt(token[1]);
+                } catch (NumberFormatException nfe) {}
+            }
+            if ("ep".equalsIgnoreCase(token[2])) {
+                try {
+                    episode = Integer.parseInt(token[3]);
+                } catch (NumberFormatException nfe) {}
+            }
+        }
+    }
     public String toString() {
-        return seriesTitle + " " + title + " " + href;
+        return seriesTitle + " " + title + " " + series + " " + episode + " " + href + " " + pubDate;
+    }
+
+    @Override
+    public int compareTo(AbcEpisode that) {
+        if (this.series == that.series) {
+            if (this.episode == that.episode) {
+                if ((this.pubDate == null) || (that.pubDate == null)) {
+                    return 0;
+                } else {
+                    return this.pubDate.compareTo(that.pubDate);
+                }
+            } else {
+                return this.episode - that.episode;
+            }
+        } else {
+            return this.series - that.series;
+        }
     }
 }

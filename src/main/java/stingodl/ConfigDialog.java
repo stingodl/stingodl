@@ -46,6 +46,8 @@ public class ConfigDialog extends VBox {
     Label downloadLabel = new Label("Download location:");
     Button downloadSelect = new Button("Select");
     Label downloadLocation = new Label();
+    Label oneEpisodePerSeriesLabel = new Label("Download only one episode at a time per series");
+    CheckBox oneEpisodePerSeriesCb = new CheckBox();
     Label sbsVeryRecentMinutesLabel =
             new Label("Minutes after a full SBS update to suppress a quick update:");
     TextField sbsVeryRecentText = new TextField();
@@ -98,6 +100,19 @@ public class ConfigDialog extends VBox {
                 }
         });
         getChildren().add(row2);
+
+        HBox row3 = new HBox();
+        row3.setAlignment(Pos.CENTER_LEFT);
+        HBox.setMargin(oneEpisodePerSeriesLabel, new Insets(10, 0, 0, 10));
+        row3.getChildren().add(oneEpisodePerSeriesLabel);
+        oneEpisodePerSeriesCb.setSelected(status.config.oneEpisodePerSeries);
+        HBox.setMargin(oneEpisodePerSeriesCb, new Insets(10, 0, 0, 10));
+        row3.getChildren().add(oneEpisodePerSeriesCb);
+        oneEpisodePerSeriesCb.setOnAction(actionEvent ->  {
+            status.config.oneEpisodePerSeries = oneEpisodePerSeriesCb.isSelected();
+            status.saveConfig();
+        });
+        getChildren().add(row3);
 
         sbsVeryRecentText.setPrefColumnCount(5);
         sbsVeryRecentText.setText(Long.toString(status.config.sbsQuickUpdateMinutes));
@@ -152,19 +167,19 @@ public class ConfigDialog extends VBox {
             }
         });
 
-        HBox row3 = new HBox();
-        row3.setAlignment(Pos.CENTER_LEFT);
-        HBox.setMargin(sbsVeryRecentMinutesLabel, new Insets(15, 0, 0, 10));
-        HBox.setMargin(sbsVeryRecentText, new Insets(15, 0, 0, 10));
-        row3.getChildren().addAll(sbsVeryRecentMinutesLabel, sbsVeryRecentText);
-        getChildren().add(row3);
-
         HBox row4 = new HBox();
         row4.setAlignment(Pos.CENTER_LEFT);
+        HBox.setMargin(sbsVeryRecentMinutesLabel, new Insets(15, 0, 0, 10));
+        HBox.setMargin(sbsVeryRecentText, new Insets(15, 0, 0, 10));
+        row4.getChildren().addAll(sbsVeryRecentMinutesLabel, sbsVeryRecentText);
+        getChildren().add(row4);
+
+        HBox row5 = new HBox();
+        row5.setAlignment(Pos.CENTER_LEFT);
         HBox.setMargin(sbsRecentHoursLabel, new Insets(15, 0, 0, 10));
         HBox.setMargin(sbsRecentText, new Insets(15, 0, 0, 10));
-        row4.getChildren().addAll(sbsRecentHoursLabel, sbsRecentText);
-        getChildren().add(row4);
+        row5.getChildren().addAll(sbsRecentHoursLabel, sbsRecentText);
+        getChildren().add(row5);
 
         if (status.config.os.equals("other")) {
             HBox rowLinux = new HBox();
@@ -174,21 +189,21 @@ public class ConfigDialog extends VBox {
             getChildren().add(rowLinux);
         }
 
-        HBox row5 = new HBox();
-        row5.setAlignment(Pos.CENTER_LEFT);
+        HBox row6 = new HBox();
+        row6.setAlignment(Pos.CENTER_LEFT);
         HBox.setMargin(logCb, new Insets(15, 0, 0, 10));
         logCb.setOnAction(actionEvent ->  {
             configureLogging();
         });
-        row5.getChildren().add(logCb);
+        row6.getChildren().add(logCb);
         HBox.setMargin(logLabel, new Insets(15, 0, 0, 10));
-        row5.getChildren().add(logLabel);
-        getChildren().add(row5);
+        row6.getChildren().add(logLabel);
+        getChildren().add(row6);
 
-        HBox row6 = new HBox();
-        row6.setAlignment(Pos.CENTER_LEFT);
+        HBox row7 = new HBox();
+        row7.setAlignment(Pos.CENTER_LEFT);
         HBox.setMargin(uninstall, new Insets(25, 0, 0, 10));
-        row6.getChildren().add(uninstall);
+        row7.getChildren().add(uninstall);
         uninstall.setOnAction(actionEvent -> {
             Dialog<ButtonType> d = new Dialog<>();
             d.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
@@ -213,7 +228,7 @@ public class ConfigDialog extends VBox {
                 }
             });
         });
-        getChildren().add(row6);
+        getChildren().add(row7);
     }
 
     public void configureLogging() {

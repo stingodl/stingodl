@@ -41,6 +41,8 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -78,20 +80,20 @@ public class EpisodeDownloader extends Task<Background> {
         }
         int downloadCount = 1;
         if (EpisodeDownloadType.ABC_SERIES.equals(type) || EpisodeDownloadType.SBS_SERIES.equals(type)) {
-            while (downloadCount > 0) {
-                downloadCount = 0;
-                selectedSeries = status.seriesSelection.sort(); // this is a synchronized method
-                LOGGER.fine(SelectedSeries.listToString(selectedSeries));
-                for (SelectedSeries s : selectedSeries) {
-                    if (!isCancelled()) {
-                        if (EpisodeDownloadType.ABC_SERIES.equals(type) && s.network.equals("abc")) {
-                            downloadCount += downloadAbcSeries(s);
-                        } else if (EpisodeDownloadType.SBS_SERIES.equals(type) && s.network.equals("sbs")){
-                            downloadCount += downloadSbsSeries(s);
-                        }
+//            while (downloadCount > 0) {
+//                downloadCount = 0;
+            selectedSeries = status.seriesSelection.sort(); // this is a synchronized method
+            LOGGER.fine(SelectedSeries.listToString(selectedSeries));
+            for (SelectedSeries s : selectedSeries) {
+                if (!isCancelled()) {
+                    if (EpisodeDownloadType.ABC_SERIES.equals(type) && s.network.equals("abc")) {
+                        downloadCount += downloadAbcSeries(s);
+                    } else if (EpisodeDownloadType.SBS_SERIES.equals(type) && s.network.equals("sbs")){
+                        downloadCount += downloadSbsSeries(s);
                     }
                 }
             }
+//            }
         } else if (EpisodeDownloadType.SELECTED_EPISODE.equals(type)) { //Selected Episodes
             while (downloadCount > 0) {
                 downloadCount = 0;
@@ -131,6 +133,12 @@ public class EpisodeDownloader extends Task<Background> {
         if (uri != null) {
             try {
                 abc = JsonConstructiveParser.parse(status.httpInput.getReader(uri), AbcSeries.class);
+                if (abc.episodes != null) {
+                    for (AbcEpisode ep: abc.episodes) {
+                        ep.parseTitle();
+                    }
+                    Collections.sort(abc.episodes);
+                }
             } catch (Exception ioe) {
                 LOGGER.log(Level.SEVERE, "Series request failed: " + uriStr, ioe);
             }
@@ -149,6 +157,9 @@ public class EpisodeDownloader extends Task<Background> {
                             SelectedEpisode se = new SelectedEpisode(Network.ABC, ep.href);
                             downloadAbcEpisode(se);
                             downloadCount++;
+                            if (status.config.oneEpisodePerSeries) {
+                                break;
+                            }
                         }
                     }
                 }
@@ -270,12 +281,17 @@ public class EpisodeDownloader extends Task<Background> {
         SbsSeries series = status.sbsEpisodes.seriesMap.get(s.href);
         int downloadCount = 0;
         if (series != null) {
-            for (SbsEpisode ep: series.episodes.values()) {
+            List<SbsEpisode> eps = new ArrayList<>(series.episodes.values());
+            Collections.sort(eps, Comparator.reverseOrder()); // earliest first
+            for (SbsEpisode ep: eps) {
                 if (!isCancelled()) {
                     if (!status.episodeHistory.contains(Network.SBS.historyHref(ep.id))) {
                         SelectedEpisode se = new SelectedEpisode(Network.SBS, ep.id);
                         downloadSbsEpisode(se);
                         downloadCount++;
+                        if (status.config.oneEpisodePerSeries) {
+                            break;
+                        }
                     }
                 }
             }
