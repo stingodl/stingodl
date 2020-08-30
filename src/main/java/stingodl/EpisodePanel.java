@@ -176,7 +176,7 @@ public class EpisodePanel extends VBox {
         if (se.streams == null) {
             return;
         }
-        String url = M3u8.getResolutionUpTo(360, false, se.streams);
+        String url = M3u8.getResolutionUpTo(360, false, se.streams).url;
         LOGGER.fine("Preview URL: " + url);
         if (url != null) {
             try {

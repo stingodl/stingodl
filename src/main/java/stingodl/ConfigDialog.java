@@ -21,6 +21,8 @@
  ******************************************************************************/
 package stingodl;
 
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
@@ -58,6 +60,20 @@ public class ConfigDialog extends VBox {
     Button uninstall = new Button("Delete all configuration and history.");
     CheckBox logCb = new CheckBox();
     Label logLabel = new Label("Turn on detailed logging");
+    Label hevcLabel = new Label("Encode with High Efficiency Video Coding (HEVC/H.265)");
+    CheckBox hevcCb = new CheckBox();
+    Label hevcCautionLabel = new Label("CAUTION: ABC and SBS use H.264 encoding, H.265 transcoding is slow and CPU intensive.");
+    Label hevcDefaultCrfLabel = new Label("Default HEVC quality");
+    CheckBox hevcDefaultCrfCb = new CheckBox();
+    Label hevcUserDefinedCrfLabel = new Label("HEVC quality 0-51, lower is higher quality");
+    TextField hevcUserDefinedCrfText = new TextField();
+    Label resolutionLabel = new Label("Maximum resolution (vertical pixels)");
+    ResolutionRadioButton rb240 = new ResolutionRadioButton(240,"240");
+    ResolutionRadioButton rb360 = new ResolutionRadioButton(360,"360");
+    ResolutionRadioButton rb720 = new ResolutionRadioButton(720,"720");
+    ResolutionRadioButton rb1080 = new ResolutionRadioButton(1080,"1080");
+    ResolutionRadioButton rbUnlimited = new ResolutionRadioButton(Integer.MIN_VALUE,"Unlimited");
+    ToggleGroup toggleGroup = new ToggleGroup();
 
     public ConfigDialog(Window window, Status status) {
         this.window = window;
@@ -188,6 +204,123 @@ public class ConfigDialog extends VBox {
             rowLinux.getChildren().add(linuxText);
             getChildren().add(rowLinux);
         }
+
+        HBox rowRes = new HBox();
+        rowRes.setAlignment(Pos.CENTER_LEFT);
+        HBox.setMargin(resolutionLabel, new Insets(15, 0, 0, 10));
+        HBox.setMargin(rb240, new Insets(10, 0, 0, 10));
+        HBox.setMargin(rb360, new Insets(10, 0, 0, 10));
+        HBox.setMargin(rb720, new Insets(10, 0, 0, 10));
+        HBox.setMargin(rb1080, new Insets(10, 0, 0, 10));
+        HBox.setMargin(rbUnlimited, new Insets(10, 0, 0, 10));
+        rb240.setToggleGroup(toggleGroup);
+        rb360.setToggleGroup(toggleGroup);
+        rb720.setToggleGroup(toggleGroup);
+        rb1080.setToggleGroup(toggleGroup);
+        rbUnlimited.setToggleGroup(toggleGroup);
+        switch (status.config.maxResulotion) {
+            case 240 :
+                rb240.setSelected(true);
+                break;
+            case 360 :
+                rb360.setSelected(true);
+                break;
+            case 720 :
+                rb720.setSelected(true);
+                break;
+            case 1080 :
+                rb1080.setSelected(true);
+                break;
+            default:
+                rbUnlimited.setSelected(true);
+                status.config.maxResulotion = Integer.MAX_VALUE;
+        }
+        toggleGroup.selectedToggleProperty().addListener(new ChangeListener<Toggle>() {
+            @Override
+            public void changed(ObservableValue<? extends Toggle> observableValue, Toggle toggle, Toggle t1) {
+                status.config.maxResulotion = ((ResolutionRadioButton)t1).res;
+                status.saveConfig();
+            }
+        });
+        rowRes.getChildren().addAll(resolutionLabel, rb240, rb360, rb720, rb1080, rbUnlimited);
+        getChildren().add(rowRes);
+
+        HBox rowHevc1 = new HBox();
+        rowHevc1.setAlignment(Pos.CENTER_LEFT);
+        HBox.setMargin(hevcLabel, new Insets(15, 0, 0, 10));
+        HBox.setMargin(hevcCb, new Insets(10, 0, 0, 10));
+        hevcCb.setSelected(status.config.encodeHEVC);
+        hevcDefaultCrfCb.setDisable(!status.config.encodeHEVC);
+        hevcUserDefinedCrfText.setDisable(!status.config.encodeHEVC);
+        hevcCb.setOnAction(actionEvent ->  {
+            status.config.encodeHEVC = hevcCb.isSelected();
+            hevcDefaultCrfCb.setDisable(!status.config.encodeHEVC);
+            hevcUserDefinedCrfText.setDisable(!status.config.encodeHEVC);
+            status.saveConfig();
+        });
+        rowHevc1.getChildren().addAll(hevcLabel,hevcCb);
+        getChildren().add(rowHevc1);
+
+        VBox.setMargin(hevcCautionLabel, new Insets(2, 0, 0, 10));
+        getChildren().add(hevcCautionLabel);
+
+        HBox rowHevc2 = new HBox();
+        rowHevc2.setAlignment(Pos.CENTER_LEFT);
+        HBox.setMargin(hevcDefaultCrfLabel, new Insets(5, 0, 0, 10));
+        HBox.setMargin(hevcDefaultCrfCb, new Insets(0, 0, 0, 10));
+        HBox.setMargin(hevcUserDefinedCrfLabel, new Insets(5, 0, 0, 10));
+        HBox.setMargin(hevcUserDefinedCrfText, new Insets(0, 0, 0, 10));
+        hevcUserDefinedCrfText.setPrefColumnCount(2);
+        hevcDefaultCrfCb.setSelected(status.config.encodeHevcCrf == Config.HEVC_DEFAULT_CRF);
+        if (hevcDefaultCrfCb.isSelected()) {
+            hevcUserDefinedCrfText.setDisable(true);
+            hevcUserDefinedCrfText.setText(Integer.toString(Config.HEVC_DEFAULT_CRF));
+        } else {
+            hevcUserDefinedCrfText.setText(Integer.toString(status.config.encodeHevcCrf));
+        }
+        hevcDefaultCrfCb.setOnAction(actionEvent ->  {
+            if (hevcDefaultCrfCb.isSelected()) {
+                status.config.encodeHevcCrf = Config.HEVC_DEFAULT_CRF;
+                hevcUserDefinedCrfText.setText(Integer.toString(Config.HEVC_DEFAULT_CRF));
+                hevcUserDefinedCrfText.setDisable(true);
+            } else {
+                hevcUserDefinedCrfText.setDisable(false);
+            }
+            status.saveConfig();
+        });
+        hevcUserDefinedCrfText.setTextFormatter(new TextFormatter<>(c -> {
+            if (c.isContentChange()) {
+                if (c.getControlNewText().length() == 0) {
+                    return c;
+                }
+                try {
+                    Integer.parseInt(c.getControlNewText());
+                    return c;
+                } catch (NumberFormatException e) {
+                }
+                return null;
+
+            }
+            return c;
+        }));
+        hevcUserDefinedCrfText.focusedProperty().addListener((observableValue, aBoolean, t1) -> {
+            if (!t1) { //lost focus
+                if (hevcUserDefinedCrfText.getText().length() > 0) {
+                    int crf = Integer.parseInt(hevcUserDefinedCrfText.getText());
+                    if (crf > Config.MAX_CRF) {
+                        crf = Config.MAX_CRF;
+                    }
+                    hevcUserDefinedCrfText.setText(Integer.toString(crf));
+                    status.config.encodeHevcCrf = crf;
+                    status.saveConfig();
+                } else {
+                    hevcUserDefinedCrfText.setText(Integer.toString(status.config.encodeHevcCrf));
+                }
+            }
+        });
+        rowHevc2.getChildren().addAll(hevcDefaultCrfLabel,hevcDefaultCrfCb,
+                hevcUserDefinedCrfLabel, hevcUserDefinedCrfText);
+        getChildren().add(rowHevc2);
 
         HBox row6 = new HBox();
         row6.setAlignment(Pos.CENTER_LEFT);

@@ -22,6 +22,7 @@
 package stingodl;
 
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
@@ -32,6 +33,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringTokenizer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -52,24 +54,29 @@ public class M3u8 {
             try {
                 ep = JsonConstructiveParser.parse(status.httpInput.getReader(uri), AbcEpisodeDetail.class);
             } catch (Exception ioe) {
-                LOGGER.log(Level.SEVERE, "Series request failed: " + uriStr, ioe);
+                LOGGER.log(Level.SEVERE, "ABC episode parse failed: " + uriStr, ioe);
             }
         }
-        if (ep.title == null) {
-            se.title = ep.seriesTitle;
-        } else {
-            se.title = ep.seriesTitle + " " + ep.title;
-        }
-        se.description = ep.description;
-        se.duration = (Integer.parseInt(ep.duration) / 60) + " min";
-        se.expiry = ep.expireDate.substring(0,10);
-        se.thumbnailUrl = ep.thumbnail;
-        LOGGER.fine("ABC episode " + ep.title);
-        for (AbcStreams st : ep.playlist) {
-            if (st.type.equals("program")) {
-                LOGGER.fine("HLS URL " + st.hls_plus);
-                se.m3u8Url = status.abcAuth.fixUrl(st.hls_plus);
-                LOGGER.fine("Fixed URL " + se.key.href);
+        if (ep != null) {
+            if (ep.title == null) {
+                se.title = ep.seriesTitle;
+            } else {
+                se.title = ep.seriesTitle + " " + ep.title;
+            }
+            se.description = ep.description;
+            se.duration = (Integer.parseInt(ep.duration) / 60) + " min";
+            se.expiry = ep.expireDate.substring(0, 10);
+            se.thumbnailUrl = ep.thumbnail;
+            LOGGER.fine("ABC episode " + ep.title);
+            for (AbcStreams st : ep.playlist) {
+                if (st.type.equals("program")) {
+                    LOGGER.fine("HLS URL " + st.hls_plus);
+                    se.m3u8Url = status.abcAuth.fixUrl(st.hls_plus);
+                    LOGGER.fine("Fixed URL " + se.key.href);
+                    if (st.captions != null) {
+                        se.subtitle = st.captions.src_vtt;
+                    }
+                }
             }
         }
     }
@@ -106,6 +113,7 @@ public class M3u8 {
                 }
                 reader.close();
                 if (params != null) {
+                    se.title = params.videoTitle;
                     DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
                     Document doc = db.parse(params.releaseUrls.html);
                     NodeList list = doc.getElementsByTagName("video");
@@ -113,6 +121,16 @@ public class M3u8 {
                     m3u8 = n.getAttributes().getNamedItem("src").getTextContent();
                     LOGGER.fine("SBS initial m3u8: " + m3u8);
                     se.streams = getStreamInfs(m3u8, status.httpInput);
+                    list = doc.getElementsByTagName("textstream");
+                    for (int i = 0; i < list.getLength(); i++) {
+                        Element sub = (Element)list.item(i);
+                        String lang = sub.getAttribute("lang");
+                        String type = sub.getAttribute("type");
+                        if ("en".equals(lang) && "text/srt".equals(type)) {
+                            se.subtitle = sub.getAttribute("src");
+                            break;
+                        }
+                    }
                 }
             } catch (Exception ioe) {
                 LOGGER.log(Level.SEVERE, "Series request failed: " + uriStr, ioe);
@@ -148,7 +166,7 @@ public class M3u8 {
         return list;
     }
 
-    public static String getResolutionUpTo(int targetHeight, boolean bandwidthHigh, List<StreamInf> infs) {
+    public static StreamInf getResolutionUpTo(int targetHeight, boolean bandwidthHigh, List<StreamInf> infs) {
         StreamInf bestInf = null;
         int bestHeight = 0;
         int bandwidth = bandwidthHigh ? 0 : Integer.MAX_VALUE;
@@ -172,7 +190,7 @@ public class M3u8 {
             }
         }
         LOGGER.fine(bestInf.toString());
-        return bestInf.url;
+        return bestInf;
     }
 
     public static int getSegmentCount(String uri, HttpInput httpInput) {
@@ -274,6 +292,13 @@ public class M3u8 {
             }
         } else if ("CODECS".equals(property)) {
             inf.codecs = value;
+            StringTokenizer st = new StringTokenizer(value,",");
+            while(st.hasMoreTokens()) {
+                if (st.nextToken().trim().startsWith("hvc")) {
+                    inf.isHEVC = true;
+                    break;
+                }
+            }
         } else if ("CLOSED-CAPTIONS".equals(property)) {
             inf.closedCations = value;
         }
@@ -286,6 +311,7 @@ public class M3u8 {
         String codecs;
         String closedCations;
         String url;
+        boolean isHEVC = false;
 
         @Override
         public String toString() {

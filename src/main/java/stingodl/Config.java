@@ -22,10 +22,15 @@
 package stingodl;
 
 public class Config {
+    public static int HEVC_DEFAULT_CRF = 28;
+    public static int MAX_CRF = 51;
     public String downloadDir;
     public long sbsQuickUpdateMinutes = 120;
     public long sbsFullUpdateHours = 23;
     public boolean oneEpisodePerSeries = true;
+    public boolean encodeHEVC = false;
+    public int maxResulotion = Integer.MAX_VALUE;
+    public int encodeHevcCrf = HEVC_DEFAULT_CRF;
     public transient String ffmpegVersion;
     public transient String ffmpegText;
     public transient String ffmpegCommand;

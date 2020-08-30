@@ -173,106 +173,12 @@ public class EpisodeDownloader extends Task<Background> {
         if (isCancelled()) {
             return;
         }
-        URI uri = null;
-        String uriStr = "https://iview.abc.net.au/api/" + se.key.href;
-        AbcEpisodeDetail ep = null;
-        try {
-            uri = new URI(uriStr);
-        } catch (URISyntaxException urise) {
-            LOGGER.log(Level.SEVERE, "ABC URI Invalid: " + uriStr, urise);
-        }
-        if (uri != null) {
-            try {
-                ep = JsonConstructiveParser.parse(status.httpInput.getReader(uri), AbcEpisodeDetail.class);
-            } catch (Exception ioe) {
-                LOGGER.log(Level.SEVERE, "Series request failed: " + uriStr, ioe);
-            }
-        }
-        if (!isCancelled() && (ep != null) && (ep.playlist != null)) {
-            if (ep.title == null) {
-                se.title = ep.seriesTitle;
-            } else {
-                se.title = ep.seriesTitle + " " + ep.title;
-            }
-            se.description = ep.description;
-            LOGGER.fine("ABC episode " + ep.title);
-            for (AbcStreams st : ep.playlist) {
-                if (st.type.equals("program")) {
-                    String plus = st.hls_plus;
-                    LOGGER.fine("HLS URL " + plus);
-                    plus = status.abcAuth.fixUrl(plus);
-                    LOGGER.fine("Fixed URL " + plus);
-                    se.streams = M3u8.getStreamInfs(plus, status.httpInput);
-                    String best = status.abcAuth.appendTokenOnly(M3u8.getResolutionUpTo(Integer.MAX_VALUE, true, se.streams));
-                    int segCount = M3u8.getSegmentCount(best, status.httpInput);
-                    LOGGER.fine(best + " " + segCount);
-                    File outDir = new File((status.config.downloadDir == null) ?
-                            System.getProperty("user.home") : status.config.downloadDir);
-                    outFile = new File(outDir, fixFileName(se.title) + ".mp4");
-                    LOGGER.fine("Download file: " + outFile);
-                    String captions = null;
-                    if (st.captions != null) {
-                        captions = st.captions.src_vtt;
-                    }
-                    ProcessBuilder pb = null;
-                    if (captions == null) {
-                        pb = new ProcessBuilder(status.config.ffmpegCommand, "-y", "-i", best, "-c", "copy", outFile.toString());
-                    } else {
-                        pb = new ProcessBuilder(status.config.ffmpegCommand, "-y", "-i", best, "-i", captions,
-                                "-c", "copy", "-c:s", "mov_text", "-metadata:s:s:0", "language=eng", "-tag:s:s:0", "tx3g", outFile.toString());
-                    }
-                    pb.redirectErrorStream(true);
-                    if (isCancelled()) {
-                        return;
-                    } else {
-                        updateTitle(se.title);
-                        updateProgress(0, segCount);
-                        updateValue(new Background(new BackgroundFill(Color.GRAY, new CornerRadii(7), null)));
-                    }
-                    try {
-                        p = pb.start();
-                        BufferedReader outReader = new BufferedReader(new InputStreamReader(p.getInputStream()));
-                        String line = outReader.readLine();
-                        while (line != null) {
-                            if (isCancelled()) {
-                                kill();
-                                return;
-                            }
-                            int start = line.indexOf("/segment");
-                            if (start > 0) {
-                                start = start + 8;
-                                int end = line.indexOf('_', start);
-                                int seg = Integer.parseInt(line.substring(start, end));
-                                updateProgress(seg, segCount);
-                            }
-                            line = outReader.readLine();
-                        }
-                    } catch (IOException ioe) {
-                        LOGGER.log(Level.SEVERE, "Process status read failed", ioe);
-                    }
-                    int procStatus = -1;
-                    try {
-                        if (p != null) {
-                            procStatus = p.waitFor();
-                        }
-                    } catch (InterruptedException ie) {}
-                    p = null;
-                    if (procStatus == 0) {
-                        updateMessage(" Complete ");
-                        updateValue(new Background(new BackgroundFill(Color.GREEN, new CornerRadii(7), null)));
-                        VisualEpisode ve = status.visualEpMap.get(se.key);
-                        if (ve != null) {
-                            Platform.runLater(() ->  {
-                                ve.downloadComplete();
-                            });
-                        }
-                        status.episodeHistory.add(Network.ABC.historyHref(se.key.href));
-                        status.saveHistory();
-                    } else {
-                        LOGGER.severe("Download of " + se.title + " failed. FFmpeg status = " + procStatus);
-                        throw new RuntimeException("FFmpeg process ended abnormally");
-                    }
-                }
+        M3u8.addAbcDetails(se, status);
+        if (se.m3u8Url != null) {
+            M3u8.findAbcStreams(se, status);
+            if (!isCancelled() && (se.streams != null) && (!se.streams.isEmpty())) {
+                LOGGER.fine("ABC episode " + se.title);
+                downloadEpisode(se, status.config.maxResulotion);
             }
         }
     }
@@ -303,124 +209,105 @@ public class EpisodeDownloader extends Task<Background> {
         if (isCancelled()) {
             return;
         }
-        URI uri = null;
-        String uriStr = "https://www.sbs.com.au/ondemand/video/single/" + se.key.href;
-        try {
-            uri = new URI(uriStr);
-        } catch (URISyntaxException urise) {
-            LOGGER.log(Level.SEVERE, "SBS URI Invalid: " + uriStr, urise);
-        }
-        SbsPlayerParams params = null;
-        String m3u8 = null;
-        String subtitle = null;
-        if (uri != null) {
-            try {
-                BufferedReader reader = new BufferedReader(status.httpInput.getReader(uri));
-                String l = reader.readLine();
-                while (l != null) {
-                    if (l.trim().startsWith("var playerParams =")) {
-                        params = JsonConstructiveParser.parse(l.substring(l.indexOf('{'), l.lastIndexOf('}') + 1), SbsPlayerParams.class);
-                        LOGGER.fine(params.toString());
-                        break;
-                    }
-                    l = reader.readLine();
-                }
-                reader.close();
-                if (params != null) {
-                    se.title = params.videoTitle;
-                    DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-                    Document doc = db.parse(params.releaseUrls.html);
-                    NodeList list = doc.getElementsByTagName("video");
-                    Node n = list.item(0);
-                    m3u8 = n.getAttributes().getNamedItem("src").getTextContent();
-                    LOGGER.fine("SBS initial m3u8: " + m3u8);
-                    se.description = n.getAttributes().getNamedItem("abstract").getTextContent();
-                    // find subtitles
-                    list = doc.getElementsByTagName("textstream");
-                    for (int i = 0; i < list.getLength(); i++) {
-                        Element sub = (Element)list.item(i);
-                        String lang = sub.getAttribute("lang");
-                        String type = sub.getAttribute("type");
-                        if ("en".equals(lang) && "text/srt".equals(type)) {
-                            subtitle = sub.getAttribute("src");
-                            break;
-                        }
-                    }
-                }
-            } catch (Exception ioe) {
-                LOGGER.log(Level.SEVERE, "Series request failed: " + uriStr, ioe);
-            }
-        }
-        if (!isCancelled() && (m3u8 != null)) {
+        M3u8.findSbsStreams(se, status);
+        if (!isCancelled() && (se.streams != null) && (!se.streams.isEmpty())) {
             LOGGER.fine("SBS episode " + se.title);
-            List<M3u8.StreamInf> streamList = M3u8.getStreamInfs(m3u8, status.httpInput);
-            String best = M3u8.getResolutionUpTo(Integer.MAX_VALUE, true, streamList);
-            int segCount = M3u8.getSegmentCount(best, status.httpInput);
-            LOGGER.fine(best + " " + segCount);
-            File outDir = new File((status.config.downloadDir == null) ?
-                    System.getProperty("user.home") : status.config.downloadDir);
-            outFile = new File(outDir, fixFileName(se.title) + ".mp4");
-            LOGGER.fine("Download file: " + outFile);
-            ProcessBuilder pb = null;
-            if (subtitle == null) {
-                pb = new ProcessBuilder(status.config.ffmpegCommand, "-y", "-i", best, "-c", "copy", outFile.toString());
-            } else {
-                pb = new ProcessBuilder(status.config.ffmpegCommand, "-y", "-i", best, "-i", subtitle,
-                        "-c", "copy", "-c:s", "mov_text", "-metadata:s:s:0", "language=eng", "-tag:s:s:0", "tx3g", outFile.toString());
-            }
-            pb.redirectErrorStream(true);
-            if (isCancelled()) {
-                return;
-            } else {
-                updateTitle(se.title);
-                updateProgress(0, segCount);
-                updateValue(new Background(new BackgroundFill(Color.GRAY, new CornerRadii(7), null)));
-            }
-            try {
-                p = pb.start();
-                BufferedReader outReader = new BufferedReader(new InputStreamReader(p.getInputStream()));
-                String line = outReader.readLine();
-                while (line != null) {
-                    if (isCancelled()) {
-                        kill();
-                        return;
-                    }
-                    int start = line.indexOf("/segment");
-                    if (start > 0) {
-                        start = start + 8;
-                        int end = line.indexOf('_', start);
-                        int seg = Integer.parseInt(line.substring(start, end));
-                        updateProgress(seg, segCount);
-                    }
-                    line = outReader.readLine();
-                }
-            } catch (IOException ioe) {
-                LOGGER.log(Level.SEVERE, "Process status read failed", ioe);
-            }
-            int procStatus = -1;
-            try {
-                if (p != null) {
-                    procStatus = p.waitFor();
-                }
-            } catch (InterruptedException ie) {
-            }
-            p = null;
-            if (procStatus == 0) {
-                updateMessage(" Complete ");
-                updateValue(new Background(new BackgroundFill(Color.GREEN, new CornerRadii(7), null)));
-                VisualEpisode ve = status.visualEpMap.get(se.key);
-                if (ve != null) {
-                    Platform.runLater(() -> {
-                        ve.downloadComplete();
-                    });
-                }
-                status.episodeHistory.add(Network.SBS.historyHref(se.key.href));
-                status.saveHistory();
-            } else {
-                LOGGER.severe("Download of " + se.title + " failed. FFmpeg status = " + procStatus);
-                throw new RuntimeException("FFmpeg process ended abnormally");
-            }
+            downloadEpisode(se, status.config.maxResulotion);
         }
+    }
+
+    public void downloadEpisode(SelectedEpisode se, int maxResulotion) {
+        M3u8.StreamInf best = M3u8.getResolutionUpTo(maxResulotion, true, se.streams);
+        int segCount = M3u8.getSegmentCount(best.url, status.httpInput);
+        LOGGER.fine(best + " " + segCount);
+        File outDir = new File((status.config.downloadDir == null) ?
+                System.getProperty("user.home") : status.config.downloadDir);
+        outFile = new File(outDir, fixFileName(se.title) + ".mp4");
+        LOGGER.fine("Download file: " + outFile);
+        List<String> args = new ArrayList<>();
+        args.add(status.config.ffmpegCommand);
+        args.add("-y");
+        args.add("-i");
+        args.add(best.url);
+        if (se.subtitle != null) {
+            args.add("-i");
+            args.add(se.subtitle);
+            args.add("-c:s");
+            args.add("mov_text");
+            args.add("-metadata:s:s:0");
+            args.add("language=eng");
+            args.add("-tag:s:s:0");
+            args.add("tx3g");
+        }
+        if (status.config.encodeHEVC && !best.isHEVC) {
+            args.add("-c:v");
+            args.add("libx265");
+            args.add("-tag:v");
+            args.add("hvc1");
+            args.add("-crf");
+            args.add(Integer.toString(status.config.encodeHevcCrf));
+        } else {
+            args.add("-c:v");
+            args.add("copy");
+        }
+        args.add("-c:a");
+        args.add("copy");
+        args.add(outFile.toString());
+        LOGGER.fine(args.toString());
+        ProcessBuilder pb = new ProcessBuilder(args);
+        pb.redirectErrorStream(true);
+        if (isCancelled()) {
+            return;
+        } else {
+            updateTitle(se.title);
+            updateProgress(0, segCount);
+            updateValue(new Background(new BackgroundFill(Color.GRAY, new CornerRadii(7), null)));
+        }
+        try {
+            p = pb.start();
+            BufferedReader outReader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+            String line = outReader.readLine();
+            while (line != null) {
+                if (isCancelled()) {
+                    kill();
+                    return;
+                }
+                int start = line.indexOf("/segment");
+                if (start > 0) {
+                    start = start + 8;
+                    int end = line.indexOf('_', start);
+                    int seg = Integer.parseInt(line.substring(start, end));
+                    updateProgress(seg, segCount);
+                }
+                line = outReader.readLine();
+            }
+        } catch (IOException ioe) {
+            LOGGER.log(Level.SEVERE, "Process status read failed", ioe);
+        }
+        int procStatus = -1;
+        try {
+            if (p != null) {
+                procStatus = p.waitFor();
+            }
+        } catch (InterruptedException ie) {
+        }
+        p = null;
+        if (procStatus == 0) {
+            updateMessage(" Complete ");
+            updateValue(new Background(new BackgroundFill(Color.GREEN, new CornerRadii(7), null)));
+            VisualEpisode ve = status.visualEpMap.get(se.key);
+            if (ve != null) {
+                Platform.runLater(() -> {
+                    ve.downloadComplete();
+                });
+            }
+            status.episodeHistory.add(se.key.network.historyHref(se.key.href));
+            status.saveHistory();
+        } else {
+            LOGGER.severe("Download of " + se.title + " failed. FFmpeg status = " + procStatus);
+            throw new RuntimeException("FFmpeg process ended abnormally");
+        }
+
     }
 
     public String fixFileName(String in) {

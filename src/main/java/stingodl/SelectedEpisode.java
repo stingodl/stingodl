@@ -33,6 +33,7 @@ public class SelectedEpisode implements Cloneable {
     public String expiry;
     public String thumbnailUrl;
     public String m3u8Url;
+    public String subtitle;
     public List<M3u8.StreamInf> streams;
 
     public SelectedEpisode(Network network, String href) {
