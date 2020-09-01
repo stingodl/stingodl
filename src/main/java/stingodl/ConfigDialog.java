@@ -72,7 +72,7 @@ public class ConfigDialog extends VBox {
     ResolutionRadioButton rb360 = new ResolutionRadioButton(360,"360");
     ResolutionRadioButton rb720 = new ResolutionRadioButton(720,"720");
     ResolutionRadioButton rb1080 = new ResolutionRadioButton(1080,"1080");
-    ResolutionRadioButton rbUnlimited = new ResolutionRadioButton(Integer.MIN_VALUE,"Unlimited");
+    ResolutionRadioButton rbUnlimited = new ResolutionRadioButton(Integer.MAX_VALUE,"Unlimited");
     ToggleGroup toggleGroup = new ToggleGroup();
 
     public ConfigDialog(Window window, Status status) {

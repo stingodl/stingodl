@@ -189,7 +189,7 @@ public class M3u8 {
                 }
             }
         }
-        LOGGER.fine(bestInf.toString());
+        LOGGER.fine((bestInf == null) ? "No StreamInf selected" : bestInf.toString());
         return bestInf;
     }
 

@@ -218,6 +218,10 @@ public class EpisodeDownloader extends Task<Background> {
 
     public void downloadEpisode(SelectedEpisode se, int maxResulotion) {
         M3u8.StreamInf best = M3u8.getResolutionUpTo(maxResulotion, true, se.streams);
+        if (best == null) {
+            LOGGER.severe("Requested resolution not available: " + maxResulotion + " " + se);
+            throw new RuntimeException("Requested resolution not available");
+        }
         int segCount = M3u8.getSegmentCount(best.url, status.httpInput);
         LOGGER.fine(best + " " + segCount);
         File outDir = new File((status.config.downloadDir == null) ?
