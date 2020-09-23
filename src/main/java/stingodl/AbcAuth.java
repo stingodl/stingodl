@@ -21,110 +21,69 @@
  ******************************************************************************/
 package stingodl;
 
-import org.w3c.dom.Document;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import java.io.IOException;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.io.LineNumberReader;
 import java.net.URI;
-import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class AbcAuth {
 
     static final Logger LOGGER = Logger.getLogger(AbcAuth.class.getName());
-
-    long exp = 0L;
-    String server;
+    static final String HMAC_SHA256 = "HmacSHA256";
+    static final byte[] HMAC_KEY = "android.content.res.Resources".getBytes(StandardCharsets.UTF_8);
+    static final String HEXES = "0123456789abcdef";
     String token = "";
-    DocumentBuilder builder;
 
-    public AbcAuth() {
+    public AbcAuth(String programId, HttpInput httpInput) {
+        Mac mac;
+        StringBuilder s = new StringBuilder("/auth/hls/sign?ts=");
+        s.append(Long.toString((System.currentTimeMillis() / 1000)));
+        s.append("&hn=");
+        s.append(programId);
+        s.append("&d=android-tablet");
+        String path = s.toString();
         try {
-            builder = DocumentBuilderFactory.newDefaultInstance().newDocumentBuilder();
+            mac = Mac.getInstance(HMAC_SHA256);
+            SecretKeySpec keySpec = new SecretKeySpec(HMAC_KEY, HMAC_SHA256);
+            mac.init(keySpec);
+            String hmac = bytesToHex(mac.doFinal(path.getBytes(StandardCharsets.UTF_8)));
+            URI uri = new URI("https://iview.abc.net.au" + path + "&sig=" + hmac);
+            LOGGER.fine("Token URI: " + uri.toString());
+            LineNumberReader reader = new LineNumberReader(httpInput.getReader(uri));
+            token = reader.readLine();
+            LOGGER.fine("Token: " + token);
+            reader.close();
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE,"XML Builder failed", e);
+            LOGGER.log(Level.SEVERE, "ABC Auth failed to initialize", e);
         }
+    }
+    public String bytesToHex( byte [] raw ) {
+        final StringBuilder hex = new StringBuilder( 2 * raw.length );
+        for ( final byte b : raw ) {
+            hex.append(HEXES.charAt((b & 0xF0) >> 4))
+                    .append(HEXES.charAt((b & 0x0F)));
+        }
+        return hex.toString();
     }
 
     /**
-     * Fixes server and appends token.
-     * @param uriStr the uri to be fixed
-     * @return fixed url
+     * Sets token as URI query.
+     * @param uriStr the uri to be amended
+     * @return URI with query
      */
-    public String fixUrl(String uriStr) {
-        if (System.currentTimeMillis() > exp) {
-            acquireToken();
-        }
-        URI uri = null;
-        try {
-            uri = new URI(uriStr);
-        } catch (URISyntaxException se) {
-            LOGGER.log(Level.SEVERE, "ABC URI Invalid: " + uriStr, se);
-        }
-        String fixed = uriStr;
-        if (uri != null) {
-            if ("http".equals(uri.getScheme())) {
-                fixed = fixed.replace("http","https");
-            }
-            fixed = fixed.replace(uri.getHost(), server);
-            fixed = fixed + "?hdnea=" + token;
-        }
-        return fixed;
+    public String setQueryToken(String uriStr) {
+        return uriStr + "?hdnea=" + token;
     }
 
     /**
-     * Appends token only.
+     * Appends token to existing query.
      * @param uriStr the url to be appended to
      * @return appended url
      */
-    public String appendTokenOnly(String uriStr) {
-        if (System.currentTimeMillis() > exp) {
-            acquireToken();
-        }
+    public String appendToken(String uriStr) {
         return uriStr + "&hdnea=" + token;
-    }
-
-    private synchronized void acquireToken() {
-        Document doc = null;
-        try {
-            doc = builder.parse("https://iview.abc.net.au/auth");
-        } catch (IOException ioe) {
-            LOGGER.log(Level.SEVERE,"Unable to connect to ABC auth", ioe);
-        } catch (SAXException saxe) {
-            LOGGER.log(Level.SEVERE,"Invalid SAX for ABC auth", saxe);
-        }
-        if (doc != null) {
-            NodeList list = doc.getElementsByTagName("server");
-            if (list.getLength() == 1) {
-                URI tokenUri = null;
-                try {
-                    tokenUri = new URI(list.item(0).getTextContent());
-                } catch (URISyntaxException se) {
-                    LOGGER.log(Level.SEVERE, "ABC URI Invalid: " + list.item(0).getTextContent(), se);
-                }
-                server = tokenUri.getHost();
-                list = doc.getElementsByTagName("tokenhd");
-                if (list.getLength() == 1) {
-                    token = list.item(0).getTextContent();
-                    LOGGER.fine("Server: " + server + " Token: " + token);
-                    int stStart = token.indexOf("st=") + 3;
-                    int stEnd = token.indexOf('~', stStart);
-                    int expStart = token.indexOf("exp=") + 4;
-                    int expEnd = token.indexOf('~', expStart);
-                    long abcSt = Long.parseLong(token.substring(stStart, stEnd)) * 1000;
-                    long abcExp = Long.parseLong(token.substring(expStart, expEnd)) * 1000;
-                    // adjust for our clock and reduce by 20 sec for safety (duration usually 10000 sec)
-                    exp = abcExp - abcSt + System.currentTimeMillis() - 20000;
-                } else {
-                    LOGGER.log(Level.SEVERE,"Invalid ABC auth response (token) " + list);
-                }
-            } else {
-                LOGGER.log(Level.SEVERE,"Invalid ABC auth response (server) " + list);
-            }
-        }
     }
 }

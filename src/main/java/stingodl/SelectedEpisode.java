@@ -35,6 +35,7 @@ public class SelectedEpisode implements Cloneable {
     public String m3u8Url;
     public String subtitle;
     public List<M3u8.StreamInf> streams;
+    public AbcAuth abcAuth;
 
     public SelectedEpisode(Network network, String href) {
         this.key = new EpisodeKey(network, href);

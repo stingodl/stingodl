@@ -71,8 +71,8 @@ public class M3u8 {
             for (AbcStreams st : ep.playlist) {
                 if (st.type.equals("program")) {
                     LOGGER.fine("HLS URL " + st.hls_plus);
-                    se.m3u8Url = status.abcAuth.fixUrl(st.hls_plus);
-                    LOGGER.fine("Fixed URL " + se.key.href);
+                    se.abcAuth = new AbcAuth(se.key.href.substring(se.key.href.lastIndexOf('/') + 1), status.httpInput);
+                    se.m3u8Url = se.abcAuth.setQueryToken(st.hls_plus);
                     if (st.captions != null) {
                         se.subtitle = st.captions.src_vtt;
                     }
@@ -84,7 +84,7 @@ public class M3u8 {
     public static void findAbcStreams(SelectedEpisode se, Status status) {
         se.streams = getStreamInfs(se.m3u8Url, status.httpInput);
         for (StreamInf inf: se.streams) {
-            inf.url = status.abcAuth.appendTokenOnly(inf.url);
+            inf.url = se.abcAuth.appendToken(inf.url);
         }
     }
 

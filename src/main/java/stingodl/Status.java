@@ -43,7 +43,6 @@ public class Status {
     public SeriesSelection seriesSelection;
     public File dataDir;
     public Config config;
-    public AbcAuth abcAuth = new AbcAuth();
     public SbsEpisodes sbsEpisodes = new SbsEpisodes();
     public boolean foundSbsEpisodesOnDisk = false;
     public ExecutorService sbsExecutor = Executors.newSingleThreadExecutor();
