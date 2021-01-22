@@ -22,5 +22,5 @@
 package stingodl;
 
 public class AAConstants {
-    public static String VERSION = "2.0.12";
+    public static String VERSION = "2.0.13";
 }

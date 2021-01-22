@@ -65,7 +65,11 @@ public class M3u8 {
             }
             se.description = ep.description;
             se.duration = (Integer.parseInt(ep.duration) / 60) + " min";
-            se.expiry = ep.expireDate.substring(0, 10);
+            if (ep.expireDate == null) {
+                se.expiry = "          ";
+            } else {
+                se.expiry = ep.expireDate.substring(0, 10);
+            }
             se.thumbnailUrl = ep.thumbnail;
             LOGGER.fine("ABC episode " + ep.title);
             for (AbcStreams st : ep.playlist) {

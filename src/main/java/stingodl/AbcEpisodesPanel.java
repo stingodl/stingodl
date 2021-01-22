@@ -85,8 +85,11 @@ public class AbcEpisodesPanel extends VBox {
             cb.setDisable(seriesCb.isSelected());
             cb.setSelected(status.selectedEpMap.containsKey(new EpisodeKey(Network.ABC, ep.href)));
             cbs.add(cb);
-            int dateEnd = ep.pubDate.indexOf(' ');
-            String date = ep.pubDate.substring(0, dateEnd);
+            String date = "";
+            if (ep.pubDate != null) {
+                int dateEnd = ep.pubDate.indexOf(' ');
+                date = ep.pubDate.substring(0, dateEnd);
+            }
             Label pubLabel = new Label(date);
             pubLabel.setMinWidth(80);
             SButton episodeButton = new SButton(title);
