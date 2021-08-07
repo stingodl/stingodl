@@ -31,9 +31,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.BufferedReader;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.StringTokenizer;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -72,13 +70,18 @@ public class M3u8 {
             }
             se.thumbnailUrl = ep.thumbnail;
             LOGGER.fine("ABC episode " + ep.title);
-            for (AbcStreams st : ep.playlist) {
-                if (st.type.equals("program")) {
-                    LOGGER.fine("HLS URL " + st.hls_plus);
+            for (AbcPlay p : ep.playlist) {
+                if (p.type.equals("program")) {
+                    String url = p.streams.hls.hd;
+                    if (url == null) {
+                        url = p.streams.hls.sd;
+                    }
+                    LOGGER.fine("HLS URL " + url);
                     se.abcAuth = new AbcAuth(se.key.href.substring(se.key.href.lastIndexOf('/') + 1), status.httpInput);
-                    se.m3u8Url = se.abcAuth.setQueryToken(st.hls_plus);
-                    if (st.captions != null) {
-                        se.subtitle = st.captions.src_vtt;
+                    se.m3u8Url = se.abcAuth.setQueryToken(url);
+                    LOGGER.fine("Auth URL " + se.m3u8Url);
+                    if (p.captions != null) {
+                        se.subtitle = p.captions.src_vtt;
                     }
                 }
             }
@@ -143,6 +146,8 @@ public class M3u8 {
     }
 
     public static List<StreamInf> getStreamInfs(String uri, HttpInput httpInput) {
+        String stripM3u8 = uri.substring(0, uri.indexOf(".m3u8"));
+        String m3u8Base = stripM3u8.substring(0, stripM3u8.lastIndexOf('/') + 1);
         List<StreamInf> list = new ArrayList<>();
         try {
             BufferedReader reader = new BufferedReader(httpInput.getReader(new URI(uri)));
@@ -151,11 +156,18 @@ public class M3u8 {
             if (l.equals("#EXTM3U")) {
                 l = reader.readLine();
                 while (l != null) {
+                    System.out.println(l);
                     if (l.startsWith("#EXT-X-STREAM-INF:")) {
                         inf = parseStreamInf(l.substring("#EXT-X-STREAM-INF:".length()));
                     } else {
                         if (inf != null) {
-                            inf.url = l;
+                            if (l.startsWith("https://")) {
+                                inf.url = l;
+                            } else if (l.startsWith("http://")) {
+                                inf.url = l;
+                            } else {
+                                inf.url = m3u8Base + l;
+                            }
                             list.add(inf);
                             inf = null;
                         }
@@ -197,33 +209,28 @@ public class M3u8 {
         return bestInf;
     }
 
-    public static int getSegmentCount(String uri, HttpInput httpInput) {
-        int count = 0;
+    public static HlsSegments getSegments(SelectedEpisode se, String uri, HttpInput httpInput) {
+        HlsSegments segments = new HlsSegments(se, uri);
         try {
             BufferedReader reader = new BufferedReader(httpInput.getReader(new URI(uri)));
             String l = reader.readLine();
-            int first = 999999;
-            int last = 0;
+            boolean uriNext = false;
             if (l.equals("#EXTM3U")) {
                 l = reader.readLine();
                 while (l != null) {
-                    if (!l.startsWith("#EXT")) {
-                        int start = l.indexOf("/segment") + 8;
-                        int end = l.indexOf('_', start);
-                        int seg = -1;
-                        try {
-                            seg = Integer.parseInt(l.substring(start, end));
-                        } catch (NumberFormatException nfe) {}
-                        if (seg >= 0) {
-                            count++;
-                            if (seg < first) {
-                                first = seg;
-                            }
-                            if (seg > last) {
-                                last = seg;
-                            }
-                        }
+                    if (l.startsWith("#EXT-X")) {
+                        segments.addExtX(new ExtX(l));
+                    } else if (l.startsWith("#EXTINF:")) {
+                        uriNext = true;
+                    } else if (uriNext) {
+                        segments.addUri(l);
+                        uriNext = false;
                     }
+                    l = reader.readLine();
+                }
+            } else {
+                while (l != null) {
+                    System.out.println(l);
                     l = reader.readLine();
                 }
             }
@@ -231,8 +238,7 @@ public class M3u8 {
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "M3u8 read (segment count) failed: " + uri, e);
         }
-        return count;
-
+        return segments;
     }
 
     public static StreamInf parseStreamInf(String s) {

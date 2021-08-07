@@ -258,6 +258,8 @@ public class JsonConstructiveParser extends com.eclipsesource.json.JsonHandler {
         String fixed = null;
         if (name.equals("double")) {
             fixed = "double_";
+        } else if (name.equals("720")) {
+            fixed = "hd";
         } else {
             fixed = name.replace('-','_');
         }

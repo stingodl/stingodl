@@ -32,18 +32,30 @@ import java.net.http.HttpResponse;
 
 public class HttpInput {
 
-    HttpClient httpClient;
+    HttpClient http1Client;
+    HttpClient http2Client;
 
     public HttpInput() {
         HttpClient.Builder httpBuilder = HttpClient.newBuilder();
         httpBuilder.followRedirects(HttpClient.Redirect.NORMAL);
+        httpBuilder.version(HttpClient.Version.HTTP_1_1);
+        http1Client = httpBuilder.build();
+        httpBuilder = HttpClient.newBuilder();
+        httpBuilder.followRedirects(HttpClient.Redirect.NORMAL);
         httpBuilder.version(HttpClient.Version.HTTP_2);
-        httpClient = httpBuilder.build();
+        http2Client = httpBuilder.build();
+    }
+
+    public InputStream getInputStream(URI uri) throws Exception {
+        HttpRequest req = HttpRequest.newBuilder(uri).GET().header("User-Agent","Mozilla/5.0 (compatible)").build();
+        if ("https".equals(uri.getScheme())) {
+            return http2Client.send(req, HttpResponse.BodyHandlers.ofInputStream()).body();
+        } else {
+            return http1Client.send(req, HttpResponse.BodyHandlers.ofInputStream()).body();
+        }
     }
 
     public Reader getReader(URI uri) throws Exception {
-        HttpRequest req = HttpRequest.newBuilder(uri).GET().header("User-Agent","Mozilla/5.0 (compatible)").build();
-        HttpResponse<InputStream> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofInputStream());
-        return new InputStreamReader(resp.body());
+        return new InputStreamReader(getInputStream(uri));
     }
 }

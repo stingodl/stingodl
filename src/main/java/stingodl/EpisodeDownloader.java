@@ -27,14 +27,11 @@ import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.CornerRadii;
 import javafx.scene.paint.Color;
-import org.w3c.dom.*;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.DecimalFormat;
@@ -80,8 +77,6 @@ public class EpisodeDownloader extends Task<Background> {
         }
         int downloadCount = 1;
         if (EpisodeDownloadType.ABC_SERIES.equals(type) || EpisodeDownloadType.SBS_SERIES.equals(type)) {
-//            while (downloadCount > 0) {
-//                downloadCount = 0;
             selectedSeries = status.seriesSelection.sort(); // this is a synchronized method
             LOGGER.fine(SelectedSeries.listToString(selectedSeries));
             for (SelectedSeries s : selectedSeries) {
@@ -93,7 +88,6 @@ public class EpisodeDownloader extends Task<Background> {
                     }
                 }
             }
-//            }
         } else if (EpisodeDownloadType.SELECTED_EPISODE.equals(type)) { //Selected Episodes
             while (downloadCount > 0) {
                 downloadCount = 0;
@@ -222,8 +216,11 @@ public class EpisodeDownloader extends Task<Background> {
             LOGGER.severe("Requested resolution not available: " + maxResulotion + " " + se);
             throw new RuntimeException("Requested resolution not available");
         }
-        int segCount = M3u8.getSegmentCount(best.url, status.httpInput);
-        LOGGER.fine(best + " " + segCount);
+        HlsSegments segments = M3u8.getSegments(se, best.url, status.httpInput);
+        System.out.println("Key URI " + segments.keyURI);
+        TsPacketCache cache = new TsPacketCache();
+        int segCount = segments.segList.size();
+        LOGGER.fine(best + " * segments: " + segCount);
         File outDir = new File((status.config.downloadDir == null) ?
                 System.getProperty("user.home") : status.config.downloadDir);
         outFile = new File(outDir, fixFileName(se.title) + ".mp4");
@@ -232,7 +229,7 @@ public class EpisodeDownloader extends Task<Background> {
         args.add(status.config.ffmpegCommand);
         args.add("-y");
         args.add("-i");
-        args.add(best.url);
+        args.add("-");
         if (se.subtitle != null) {
             args.add("-i");
             args.add(se.subtitle);
@@ -259,7 +256,7 @@ public class EpisodeDownloader extends Task<Background> {
         args.add(outFile.toString());
         LOGGER.fine(args.toString());
         ProcessBuilder pb = new ProcessBuilder(args);
-        pb.redirectErrorStream(true);
+//        pb.redirectErrorStream(true);
         if (isCancelled()) {
             return;
         } else {
@@ -267,8 +264,45 @@ public class EpisodeDownloader extends Task<Background> {
             updateProgress(0, segCount);
             updateValue(new Background(new BackgroundFill(Color.GRAY, new CornerRadii(7), null)));
         }
+
         try {
+            InputStream keyStream = status.httpInput.getInputStream(new URI(segments.keyURI));
+            byte[] key = keyStream.readAllBytes();
             p = pb.start();
+            OutputStream stdin = p.getOutputStream();
+            for (int i = 0; i < segCount; i++) {
+                URI uri = new URI(segments.segList.get(i));
+                TsDecryptInputStream tsdis = new TsDecryptInputStream(
+                        status.httpInput.getInputStream(uri), key, i + segments.startSeq);
+                tsdis.seekSyncByte(TsPacket.SYNC_BYTE);
+                TsPacket tsPacket = cache.getTsPacket();
+                int size = tsPacket.loadData(tsdis);
+                if (size == 0) { // no data in stream
+                    throw new IOException("No data in stream " + segments.segList.get(i));
+                }
+                TsPacket head = tsPacket;
+                TsPacket tail = tsPacket;
+                tsPacket = cache.getTsPacket();
+                size = tsPacket.loadData(tsdis);
+                while (size > 0) {
+                    tail.next = tsPacket;
+                    tail = tsPacket;
+                    tsPacket = cache.getTsPacket();
+                    size = tsPacket.loadData(tsdis);
+                }
+                cache.returnPacketList(tsPacket);
+                // Segment composed of valid TS packets, now write to ffmpeg stdin
+                TsPacket tsp = head;
+                while (tsp != null) {
+                    stdin.write(tsp.data);
+                    tsp = tsp.next;
+                }
+                cache.returnPacketList(head);
+                updateProgress(i + 1, segCount);
+            }
+            stdin.flush();
+            stdin.close();
+            /*
             BufferedReader outReader = new BufferedReader(new InputStreamReader(p.getInputStream()));
             String line = outReader.readLine();
             while (line != null) {
@@ -285,10 +319,14 @@ public class EpisodeDownloader extends Task<Background> {
                 }
                 line = outReader.readLine();
             }
-        } catch (IOException ioe) {
-            LOGGER.log(Level.SEVERE, "Process status read failed", ioe);
+             */
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Process failed", e);
+            throw new RuntimeException("FFmpeg failed", e);
         }
-        int procStatus = -1;
+
+//        int procStatus = -1;
+        int procStatus = 0;
         try {
             if (p != null) {
                 procStatus = p.waitFor();

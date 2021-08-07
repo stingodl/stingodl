@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2020 StingoDL.
+ * Copyright (c) 2021 StingoDL.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,21 +21,42 @@
  ******************************************************************************/
 package stingodl;
 
+import java.util.ArrayList;
 import java.util.List;
 
-public class AbcEpisodeDetail {
-    public String showID;
-    public String seriesTitle;
-    public String title;
-    public String duration;
-    public String rating;
-    public String expireDate;
-    public String description;
-    public String thumbnail;
-    public List<AbcPlay> playlist;
+public class HlsSegments {
+    SelectedEpisode se;
+    String keyMethod;
+    String keyURI;
+    int startSeq;
+    String m3u8Base;
+    List<String> segList = new ArrayList<>();
 
-    @Override
+    public HlsSegments(SelectedEpisode se, String m3u8Uri) {
+        this.se = se;
+        String stripM3u8 = m3u8Uri.substring(0, m3u8Uri.indexOf(".m3u8"));
+        m3u8Base = stripM3u8.substring(0, stripM3u8.lastIndexOf('/') + 1);
+    }
+
+    public void addExtX(ExtX extX) {
+        if ("#EXT-X-KEY".equals(extX.extX)) {
+            keyMethod = extX.valueMap.get("METHOD");
+            keyURI = extX.valueMap.get("URI");
+        } else if ("#EXT-X-MEDIA-SEQUENCE".equals(extX.extX)) {
+            startSeq = Integer.parseInt(extX.valueMap.get("VALUE"));
+        }
+    }
+
+    public void addUri(String uri) {
+        if (uri.startsWith("https://") || uri.startsWith("http://")) {
+            segList.add(uri);
+        } else {
+            segList.add(m3u8Base + uri);
+        }
+    }
+
     public String toString() {
-        return showID + " " + playlist;
+        return "HLS Segments: Key M " + keyMethod + " Key URI " + keyURI + " Seq Start " + startSeq
+                + " Segments " + segList;
     }
 }

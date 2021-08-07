@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2020 StingoDL.
+ * Copyright (c) 2021 StingoDL.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,21 +21,5 @@
  ******************************************************************************/
 package stingodl;
 
-import java.util.List;
-
-public class AbcEpisodeDetail {
-    public String showID;
-    public String seriesTitle;
-    public String title;
-    public String duration;
-    public String rating;
-    public String expireDate;
-    public String description;
-    public String thumbnail;
-    public List<AbcPlay> playlist;
-
-    @Override
-    public String toString() {
-        return showID + " " + playlist;
-    }
+public class NoAdaptionFieldException  extends RuntimeException{
 }

@@ -22,15 +22,11 @@
 package stingodl;
 
 public class AbcStreams {
-    public String type;
-    public String hls_plus;
-    public String hls_high;
-    public String hls_base;
-    public String hls_low;
-    public AbcCaptions captions;
+    public String sd;
+    public String hd;
 
     @Override
     public String toString() {
-        return "Streams Type: " + type + " Plus " + hls_plus + " High " + hls_high + " Base " + hls_base;
+        return "Streams hd: " + hd + " sd: " + sd;
     }
 }
