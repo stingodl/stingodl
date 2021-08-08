@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2020 StingoDL.
+ * Copyright (c) 2020,2021 StingoDL.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -46,10 +46,11 @@ import java.util.logging.Logger;
 /**
  * This class does all the real work of managing the episode download. It finds candidate
  * episodes, finds the best HLS URI, finds the authentication token, adds the token to the
- * HLS URI, uses the HLS URI to determine the number of segments that will be downloaded
- * (for the purpose of progress monitoring), configures a native process to run FFmpeg taking
- * input from the HLS URI and writing output to a .mp4 file. The FFmpeg configuration
- * is a simple repackaging with no codec manipulation of any kind.
+ * HLS URI, uses the HLS URI to find segments that will be downloaded and
+ * configures a native process to run FFmpeg taking input from a decrypted Transport Stream
+ * and writing output to a .mp4 file.
+ * The FFmpeg configuration is usually a simple repackaging with no codec manipulation,
+ * but may include H265 recoding.
  */
 public class EpisodeDownloader extends Task<Background> {
 
@@ -218,7 +219,6 @@ public class EpisodeDownloader extends Task<Background> {
         }
         HlsSegments segments = M3u8.getSegments(se, best.url, status.httpInput);
         System.out.println("Key URI " + segments.keyURI);
-        TsPacketCache cache = new TsPacketCache();
         int segCount = segments.segList.size();
         LOGGER.fine(best + " * segments: " + segCount);
         File outDir = new File((status.config.downloadDir == null) ?
@@ -227,6 +227,8 @@ public class EpisodeDownloader extends Task<Background> {
         LOGGER.fine("Download file: " + outFile);
         List<String> args = new ArrayList<>();
         args.add(status.config.ffmpegCommand);
+        args.add("-loglevel");
+        args.add("error");
         args.add("-y");
         args.add("-i");
         args.add("-");
@@ -256,7 +258,7 @@ public class EpisodeDownloader extends Task<Background> {
         args.add(outFile.toString());
         LOGGER.fine(args.toString());
         ProcessBuilder pb = new ProcessBuilder(args);
-//        pb.redirectErrorStream(true);
+        pb.redirectErrorStream(true);
         if (isCancelled()) {
             return;
         } else {
@@ -269,63 +271,36 @@ public class EpisodeDownloader extends Task<Background> {
             InputStream keyStream = status.httpInput.getInputStream(new URI(segments.keyURI));
             byte[] key = keyStream.readAllBytes();
             p = pb.start();
+            FfmpegOutReader outReader = new FfmpegOutReader(p.getInputStream());
+            outReader.start();
             OutputStream stdin = p.getOutputStream();
             for (int i = 0; i < segCount; i++) {
                 URI uri = new URI(segments.segList.get(i));
                 TsDecryptInputStream tsdis = new TsDecryptInputStream(
                         status.httpInput.getInputStream(uri), key, i + segments.startSeq);
                 tsdis.seekSyncByte(TsPacket.SYNC_BYTE);
-                TsPacket tsPacket = cache.getTsPacket();
-                int size = tsPacket.loadData(tsdis);
+                byte[] tsPacket = new byte[TsPacket.PACKET_SIZE];
+                int size = tsdis.readNBytes(tsPacket, 0, TsPacket.PACKET_SIZE);
                 if (size == 0) { // no data in stream
                     throw new IOException("No data in stream " + segments.segList.get(i));
                 }
-                TsPacket head = tsPacket;
-                TsPacket tail = tsPacket;
-                tsPacket = cache.getTsPacket();
-                size = tsPacket.loadData(tsdis);
                 while (size > 0) {
-                    tail.next = tsPacket;
-                    tail = tsPacket;
-                    tsPacket = cache.getTsPacket();
-                    size = tsPacket.loadData(tsdis);
+                    if ((size != TsPacket.PACKET_SIZE) || (tsPacket[0] != TsPacket.SYNC_BYTE)) {
+                        throw new IOException("Invalid Transport Stream packet");
+                    }
+                    stdin.write(tsPacket);
+                    tsPacket = new byte[TsPacket.PACKET_SIZE];;
+                    size = tsdis.readNBytes(tsPacket, 0, TsPacket.PACKET_SIZE);
                 }
-                cache.returnPacketList(tsPacket);
-                // Segment composed of valid TS packets, now write to ffmpeg stdin
-                TsPacket tsp = head;
-                while (tsp != null) {
-                    stdin.write(tsp.data);
-                    tsp = tsp.next;
-                }
-                cache.returnPacketList(head);
                 updateProgress(i + 1, segCount);
             }
             stdin.flush();
             stdin.close();
-            /*
-            BufferedReader outReader = new BufferedReader(new InputStreamReader(p.getInputStream()));
-            String line = outReader.readLine();
-            while (line != null) {
-                if (isCancelled()) {
-                    kill();
-                    return;
-                }
-                int start = line.indexOf("/segment");
-                if (start > 0) {
-                    start = start + 8;
-                    int end = line.indexOf('_', start);
-                    int seg = Integer.parseInt(line.substring(start, end));
-                    updateProgress(seg, segCount);
-                }
-                line = outReader.readLine();
-            }
-             */
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Process failed", e);
             throw new RuntimeException("FFmpeg failed", e);
         }
 
-//        int procStatus = -1;
         int procStatus = 0;
         try {
             if (p != null) {
@@ -383,6 +358,7 @@ public class EpisodeDownloader extends Task<Background> {
         super.cancelled();
         updateMessage(" Cancelled ");
         updateValue(new Background(new BackgroundFill(Color.RED, new CornerRadii(7), null)));
+        kill();
     }
 
     @Override

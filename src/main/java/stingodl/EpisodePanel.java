@@ -147,7 +147,8 @@ public class EpisodePanel extends VBox {
         cbs.getChildren().addAll(downloadLabel, downloadCb, downloadedLabel, downloadedCb);
         VBox.setMargin(cbs, new Insets(6, 8,8, 8));
         this.getChildren().add(cbs);
-        if (status.config.os.equals("macos64")) { // everything else does not work
+        if (status.config.os.equals("macos64") && Network.SBS.equals(se.key.network)) {
+            // everything else does not work, including ABC on Mac OS for now
             this.getChildren().add(preview);
             preview.setOnAction(e -> {
                 if (thumbnail != null) {
