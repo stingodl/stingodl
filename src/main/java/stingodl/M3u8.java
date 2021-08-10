@@ -156,7 +156,7 @@ public class M3u8 {
             if (l.equals("#EXTM3U")) {
                 l = reader.readLine();
                 while (l != null) {
-                    System.out.println(l);
+//                    System.out.println(l);
                     if (l.startsWith("#EXT-X-STREAM-INF:")) {
                         inf = parseStreamInf(l.substring("#EXT-X-STREAM-INF:".length()));
                     } else {
@@ -230,7 +230,7 @@ public class M3u8 {
                 }
             } else {
                 while (l != null) {
-                    System.out.println(l);
+//                    System.out.println(l);
                     l = reader.readLine();
                 }
             }

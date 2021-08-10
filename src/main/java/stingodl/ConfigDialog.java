@@ -60,13 +60,13 @@ public class ConfigDialog extends VBox {
     Button uninstall = new Button("Delete all configuration and history.");
     CheckBox logCb = new CheckBox();
     Label logLabel = new Label("Turn on detailed logging");
-    Label hevcLabel = new Label("Encode with High Efficiency Video Coding (HEVC/H.265)");
-    CheckBox hevcCb = new CheckBox();
-    Label hevcCautionLabel = new Label("CAUTION: ABC and SBS use H.264 encoding, H.265 transcoding is slow and CPU intensive.");
-    Label hevcDefaultCrfLabel = new Label("Default HEVC quality");
-    CheckBox hevcDefaultCrfCb = new CheckBox();
-    Label hevcUserDefinedCrfLabel = new Label("HEVC quality 0-51, lower is higher quality");
-    TextField hevcUserDefinedCrfText = new TextField();
+//    Label hevcLabel = new Label("Encode with High Efficiency Video Coding (HEVC/H.265)");
+//    CheckBox hevcCb = new CheckBox();
+//    Label hevcCautionLabel = new Label("CAUTION: ABC and SBS use H.264 encoding, H.265 transcoding is slow and CPU intensive.");
+//    Label hevcDefaultCrfLabel = new Label("Default HEVC quality");
+//    CheckBox hevcDefaultCrfCb = new CheckBox();
+//    Label hevcUserDefinedCrfLabel = new Label("HEVC quality 0-51, lower is higher quality");
+//    TextField hevcUserDefinedCrfText = new TextField();
     Label resolutionLabel = new Label("Maximum resolution (vertical pixels)");
     ResolutionRadioButton rb240 = new ResolutionRadioButton(240,"240");
     ResolutionRadioButton rb360 = new ResolutionRadioButton(360,"360");
@@ -244,7 +244,7 @@ public class ConfigDialog extends VBox {
         });
         rowRes.getChildren().addAll(resolutionLabel, rb240, rb360, rb720, rb1080, rbUnlimited);
         getChildren().add(rowRes);
-
+/*
         HBox rowHevc1 = new HBox();
         rowHevc1.setAlignment(Pos.CENTER_LEFT);
         HBox.setMargin(hevcLabel, new Insets(15, 0, 0, 10));
@@ -321,7 +321,7 @@ public class ConfigDialog extends VBox {
         rowHevc2.getChildren().addAll(hevcDefaultCrfLabel,hevcDefaultCrfCb,
                 hevcUserDefinedCrfLabel, hevcUserDefinedCrfText);
         getChildren().add(rowHevc2);
-
+*/
         HBox row6 = new HBox();
         row6.setAlignment(Pos.CENTER_LEFT);
         HBox.setMargin(logCb, new Insets(15, 0, 0, 10));

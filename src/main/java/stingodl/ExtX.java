@@ -77,6 +77,6 @@ public class ExtX {
             value = values.substring(valueStart);
         }
         valueMap.put(key, value);
-        System.out.println(extX + " * " + valueMap);
+//        System.out.println(extX + " * " + valueMap);
     }
 }

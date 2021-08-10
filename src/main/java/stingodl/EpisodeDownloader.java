@@ -28,10 +28,7 @@ import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.CornerRadii;
 import javafx.scene.paint.Color;
 
-import java.io.File;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.DecimalFormat;
@@ -218,7 +215,7 @@ public class EpisodeDownloader extends Task<Background> {
             throw new RuntimeException("Requested resolution not available");
         }
         HlsSegments segments = M3u8.getSegments(se, best.url, status.httpInput);
-        System.out.println("Key URI " + segments.keyURI);
+//        System.out.println("Key URI " + segments.keyURI);
         int segCount = segments.segList.size();
         LOGGER.fine(best + " * segments: " + segCount);
         File outDir = new File((status.config.downloadDir == null) ?
@@ -242,17 +239,17 @@ public class EpisodeDownloader extends Task<Background> {
             args.add("-tag:s:s:0");
             args.add("tx3g");
         }
-        if (status.config.encodeHEVC && !best.isHEVC) {
-            args.add("-c:v");
-            args.add("libx265");
-            args.add("-tag:v");
-            args.add("hvc1");
-            args.add("-crf");
-            args.add(Integer.toString(status.config.encodeHevcCrf));
-        } else {
+//        if (status.config.encodeHEVC && !best.isHEVC) {
+//            args.add("-c:v");
+//            args.add("libx265");
+//            args.add("-tag:v");
+//            args.add("hvc1");
+//            args.add("-crf");
+//            args.add(Integer.toString(status.config.encodeHevcCrf));
+//        } else {
             args.add("-c:v");
             args.add("copy");
-        }
+//        }
         args.add("-c:a");
         args.add("copy");
         args.add(outFile.toString());
