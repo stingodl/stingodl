@@ -97,8 +97,9 @@ public class M3u8 {
 
     public static void findSbsStreams(SelectedEpisode se, Status status) {
         URI uri = null;
-        String uriStr = "https://www.sbs.com.au/ondemand/video/single/" +
-                se.key.href.substring(se.key.href.lastIndexOf('/') + 1);
+        String uriStr = "https://www.sbs.com.au/api/video_pdkvars/id/" +
+                se.key.href.substring(se.key.href.lastIndexOf('/') + 1) +
+                "?form=json";
         try {
             uri = new URI(uriStr);
         } catch (URISyntaxException urise) {
@@ -109,16 +110,8 @@ public class M3u8 {
         if (uri != null) {
             try {
                 BufferedReader reader = new BufferedReader(status.httpInput.getReader(uri));
-                String l = reader.readLine();
-                while (l != null) {
-                    if (l.trim().startsWith("var playerParams =")) {
-                        params = JsonConstructiveParser.parse(l.substring(l.indexOf('{'), l.lastIndexOf('}') + 1), SbsPlayerParams.class);
-                        LOGGER.fine(params.toString());
-                        break;
-                    }
-                    l = reader.readLine();
-                }
-                reader.close();
+                params = JsonConstructiveParser.parse(reader, SbsPlayerParams.class);
+                LOGGER.fine("SBS Player params " + params);
                 if (params != null) {
                     se.title = params.videoTitle;
                     DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
