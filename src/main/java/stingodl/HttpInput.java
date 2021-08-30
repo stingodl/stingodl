@@ -24,6 +24,7 @@ package stingodl;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.net.CookieManager;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -32,27 +33,19 @@ import java.net.http.HttpResponse;
 
 public class HttpInput {
 
-    HttpClient http1Client;
-    HttpClient http2Client;
+    HttpClient httpClient;
 
     public HttpInput() {
         HttpClient.Builder httpBuilder = HttpClient.newBuilder();
         httpBuilder.followRedirects(HttpClient.Redirect.NORMAL);
-        httpBuilder.version(HttpClient.Version.HTTP_1_1);
-        http1Client = httpBuilder.build();
-        httpBuilder = HttpClient.newBuilder();
-        httpBuilder.followRedirects(HttpClient.Redirect.NORMAL);
         httpBuilder.version(HttpClient.Version.HTTP_2);
-        http2Client = httpBuilder.build();
+        httpBuilder.cookieHandler(new CookieManager());
+        httpClient = httpBuilder.build();
     }
 
     public InputStream getInputStream(URI uri) throws Exception {
         HttpRequest req = HttpRequest.newBuilder(uri).GET().header("User-Agent","Mozilla/5.0 (compatible)").build();
-        if ("https".equals(uri.getScheme())) {
-            return http2Client.send(req, HttpResponse.BodyHandlers.ofInputStream()).body();
-        } else {
-            return http1Client.send(req, HttpResponse.BodyHandlers.ofInputStream()).body();
-        }
+        return httpClient.send(req, HttpResponse.BodyHandlers.ofInputStream()).body();
     }
 
     public Reader getReader(URI uri) throws Exception {
