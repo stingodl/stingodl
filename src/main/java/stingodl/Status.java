@@ -274,6 +274,24 @@ public class Status {
         }
     }
 
+    public void pruneSbsSeries() {
+        List<SelectedSeries> current = new ArrayList<>(seriesSelection.series);
+        boolean seriesAltered = false;
+        for (SelectedSeries s: current) {
+            if (s.network.equals("sbs")) {
+                SbsSeries series = sbsEpisodes.seriesMap.get(s.href);
+                if (series == null) {
+                    seriesSelection.remove(Network.SBS, s.href);
+                    seriesAltered = true;
+                    LOGGER.fine("Removing selected SBS series " + s.href + " : no longer available");
+                }
+            }
+        }
+        if (seriesAltered) {
+            saveSeriesSelection();
+        }
+    }
+
     public class SaveHistory implements Runnable {
         EpisodeHistory eh;
         public SaveHistory(EpisodeHistory eh) {

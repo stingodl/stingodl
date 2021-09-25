@@ -33,7 +33,7 @@ public class SbsTask extends Task<Void> {
 
     static final Logger LOGGER = Logger.getLogger(SbsTask.class.getName());
     static final int INCREMENT = 500;
-    static final int INDICITIVE_SIZE = 11000;
+    static final int INDICITIVE_SIZE = 10000;
     int offset = 0;
     int loadedEpisodes = 0;
     int foundEpisodes = 0;
@@ -92,6 +92,9 @@ public class SbsTask extends Task<Void> {
                 LOGGER.fine("SbsSearch " + offset + " " + search.entries.size() + " time " + (System.currentTimeMillis() - start));
                 offset += INCREMENT;
             } while (entries > 0);
+            if (!quickUpdate) {
+                status.pruneSbsSeries();
+            }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "SBS Search Failed", e);
             RuntimeException re = new RuntimeException("SBS episode update failed", e);
