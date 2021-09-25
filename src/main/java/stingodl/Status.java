@@ -283,7 +283,10 @@ public class Status {
                 if (series == null) {
                     seriesSelection.remove(Network.SBS, s.href);
                     seriesAltered = true;
-                    LOGGER.fine("Removing selected SBS series " + s.href + " : no longer available");
+                    LOGGER.fine("Removing selected SBS series: " + s.name + " (no longer available)");
+                } else if (s.name == null) {
+                    s.name = series.series;
+                    seriesAltered = true;
                 }
             }
         }

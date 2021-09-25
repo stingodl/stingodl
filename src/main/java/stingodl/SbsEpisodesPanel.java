@@ -63,7 +63,7 @@ public class SbsEpisodesPanel extends VBox {
             seriesCb.setSelected(status.seriesSelection.isSelected(Network.SBS, series.seriesId));
             seriesCb.setOnAction(actionEvent -> {
                 if (seriesCb.isSelected()) {
-                    status.seriesSelection.add(Network.SBS, seriesCb.href);
+                    status.seriesSelection.add(Network.SBS, seriesCb.href, series.series);
                 } else {
                     status.seriesSelection.remove(Network.SBS, seriesCb.href);
                 }

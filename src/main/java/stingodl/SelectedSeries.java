@@ -28,6 +28,7 @@ public class SelectedSeries implements Comparable<SelectedSeries> {
     public String network;
     public String href;
     public String date;
+    public String name;
 
     public SelectedSeries() {
     }
@@ -35,6 +36,12 @@ public class SelectedSeries implements Comparable<SelectedSeries> {
     public SelectedSeries(Network network, String href) {
         this.network = network.name().toLowerCase();
         this.href = href;
+    }
+
+    public SelectedSeries(Network network, String href, String name) {
+        this.network = network.name().toLowerCase();
+        this.href = href;
+        this.name = name;
         this.date = LocalDate.now().toString();
     }
 

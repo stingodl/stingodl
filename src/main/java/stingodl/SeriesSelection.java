@@ -40,11 +40,11 @@ public class SeriesSelection implements Cloneable {
         }
     }
 
-    public synchronized boolean add(Network network, String href) {
+    public synchronized boolean add(Network network, String href, String name) {
         if (href == null) {
             return false;
         }
-        SelectedSeries newSeries = new SelectedSeries(network, href);
+        SelectedSeries newSeries = new SelectedSeries(network, href, name);
         for (SelectedSeries s: series) {
             if (s.equals(newSeries)) {
                 return false;

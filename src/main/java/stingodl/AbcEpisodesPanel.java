@@ -54,7 +54,7 @@ public class AbcEpisodesPanel extends VBox {
         topRow.getChildren().add(seriesCb);
         seriesCb.setOnAction(actionEvent -> {
             if (seriesCb.isSelected()) {
-                status.seriesSelection.add(Network.ABC, seriesHref);
+                status.seriesSelection.add(Network.ABC, seriesHref, series.seriesTitle);
             } else {
                 status.seriesSelection.remove(Network.ABC, seriesHref);
             }
