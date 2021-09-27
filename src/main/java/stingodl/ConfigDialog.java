@@ -27,6 +27,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
@@ -74,6 +75,7 @@ public class ConfigDialog extends VBox {
     ResolutionRadioButton rb1080 = new ResolutionRadioButton(1080,"1080");
     ResolutionRadioButton rbUnlimited = new ResolutionRadioButton(Integer.MAX_VALUE,"Unlimited");
     ToggleGroup toggleGroup = new ToggleGroup();
+    ScrollPane seriesScroll = new ScrollPane();
 
     public ConfigDialog(Window window, Status status) {
         this.window = window;
@@ -333,9 +335,23 @@ public class ConfigDialog extends VBox {
         row6.getChildren().add(logLabel);
         getChildren().add(row6);
 
+        Label seriesLabel = new Label("Series selected for download");
+        seriesLabel.setFont(bigger);
+        VBox.setMargin(seriesLabel, new Insets(15, 0, 5, 10));
+        getChildren().add(seriesLabel);
+        VBox.setVgrow(seriesScroll, Priority.ALWAYS);
+        VBox seriesBox = new VBox();
+        for (SelectedSeries s: status.seriesSelection.series) {
+            Label selectedLabel = new Label(s.toString());
+            VBox.setMargin(selectedLabel, new Insets(5,0,0,10));
+            seriesBox.getChildren().add(selectedLabel);
+        }
+        seriesScroll.setContent(seriesBox);
+        getChildren().add(seriesScroll);
+
         HBox row7 = new HBox();
         row7.setAlignment(Pos.CENTER_LEFT);
-        HBox.setMargin(uninstall, new Insets(25, 0, 0, 10));
+        HBox.setMargin(uninstall, new Insets(15, 0, 10, 10));
         row7.getChildren().add(uninstall);
         uninstall.setOnAction(actionEvent -> {
             Dialog<ButtonType> d = new Dialog<>();

@@ -250,7 +250,7 @@ public class MainPanel extends VBox {
         dialog.initOwner(mainWindow);
         dialog.initStyle(StageStyle.UTILITY);
         ConfigDialog cd = new ConfigDialog(dialog, status);
-        dialog.setScene(new Scene(cd, 600, 400));
+        dialog.setScene(new Scene(cd, 600, 700));
         return dialog;
     }
 

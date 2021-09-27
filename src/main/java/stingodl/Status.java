@@ -278,7 +278,7 @@ public class Status {
         List<SelectedSeries> current = new ArrayList<>(seriesSelection.series);
         boolean seriesAltered = false;
         for (SelectedSeries s: current) {
-            if (s.network.equals("sbs")) {
+            if (s.network.equalsIgnoreCase("SBS")) {
                 SbsSeries series = sbsEpisodes.seriesMap.get(s.href);
                 if (series == null) {
                     seriesSelection.remove(Network.SBS, s.href);
@@ -287,6 +287,7 @@ public class Status {
                 } else if (s.name == null) {
                     s.name = series.series;
                     seriesAltered = true;
+                    LOGGER.fine("Set name for SBS series: " + s.name);
                 }
             }
         }

@@ -34,12 +34,12 @@ public class SelectedSeries implements Comparable<SelectedSeries> {
     }
 
     public SelectedSeries(Network network, String href) {
-        this.network = network.name().toLowerCase();
+        this.network = network.name();
         this.href = href;
     }
 
     public SelectedSeries(Network network, String href, String name) {
-        this.network = network.name().toLowerCase();
+        this.network = network.name();
         this.href = href;
         this.name = name;
         this.date = LocalDate.now().toString();
@@ -47,7 +47,24 @@ public class SelectedSeries implements Comparable<SelectedSeries> {
 
     @Override
     public String toString() {
-        return network + "/" + href;
+        StringBuilder buf = new StringBuilder();
+        buf.append(network);
+        buf.append(": ");
+        if (name == null) {
+            int slash = href.indexOf('/');
+            if (slash >= 0) {
+                buf.append(href.substring(slash + 1));
+            } else {
+                buf.append(href);
+            }
+        } else {
+            buf.append(name);
+        }
+        buf.append(" (");
+        buf.append(date);
+        buf.append(')');
+        return buf.toString();
+//        return network + "/" + href;
     }
 
     @Override
