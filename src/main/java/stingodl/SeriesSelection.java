@@ -34,6 +34,7 @@ public class SeriesSelection implements Cloneable {
             if (s.href == null) {
                 removeThese.add(s);
             }
+            s.network = s.network.toUpperCase();
         }
         for (SelectedSeries s: removeThese) {
             series.remove(s);

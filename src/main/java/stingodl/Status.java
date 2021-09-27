@@ -278,7 +278,7 @@ public class Status {
         List<SelectedSeries> current = new ArrayList<>(seriesSelection.series);
         boolean seriesAltered = false;
         for (SelectedSeries s: current) {
-            if (s.network.equalsIgnoreCase("SBS")) {
+            if (s.network.equals(Network.SBS.name())) {
                 SbsSeries series = sbsEpisodes.seriesMap.get(s.href);
                 if (series == null) {
                     seriesSelection.remove(Network.SBS, s.href);

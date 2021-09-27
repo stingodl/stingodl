@@ -79,9 +79,9 @@ public class EpisodeDownloader extends Task<Background> {
             LOGGER.fine(SelectedSeries.listToString(selectedSeries));
             for (SelectedSeries s : selectedSeries) {
                 if (!isCancelled()) {
-                    if (EpisodeDownloadType.ABC_SERIES.equals(type) && s.network.equalsIgnoreCase("ABC")) {
+                    if (EpisodeDownloadType.ABC_SERIES.equals(type) && s.network.equals(Network.ABC.name())) {
                         downloadCount += downloadAbcSeries(s);
-                    } else if (EpisodeDownloadType.SBS_SERIES.equals(type) && s.network.equalsIgnoreCase("SBS")){
+                    } else if (EpisodeDownloadType.SBS_SERIES.equals(type) && s.network.equals(Network.SBS.name())){
                         downloadCount += downloadSbsSeries(s);
                     }
                 }
@@ -125,7 +125,6 @@ public class EpisodeDownloader extends Task<Background> {
         if (uri != null) {
             try {
                 abc = JsonConstructiveParser.parse(status.httpInput.getReader(uri), AbcSeries.class);
-                System.out.println(uri + " " + abc);
                 if (abc.episodes != null) {
                     for (AbcEpisode ep: abc.episodes) {
                         ep.parseTitle();
