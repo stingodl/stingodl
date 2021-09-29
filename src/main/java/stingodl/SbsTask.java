@@ -33,8 +33,8 @@ public class SbsTask extends Task<Void> {
 
     static final Logger LOGGER = Logger.getLogger(SbsTask.class.getName());
     static final int INCREMENT = 500;
-    static final int INDICITIVE_SIZE = 10000;
-    int offset = 0;
+    static final int INDICITIVE_SIZE = 13000;
+    static final String[] CHANNELS = new String[] {"SBS1","SBS+Food","SBS+VICELAND","SBS+World+Movies","Web+Exclusive"};
     int loadedEpisodes = 0;
     int foundEpisodes = 0;
     long start;
@@ -61,39 +61,53 @@ public class SbsTask extends Task<Void> {
     protected Void call() {
         start = System.currentTimeMillis();
         try {
-            int entries = 0;
-            do {
-                SbsSearch search = JsonConstructiveParser.parse(status.httpInput.getReader(getURI(offset)), SbsSearch.class);
+            if (quickUpdate) {
+                SbsSearch search = JsonConstructiveParser.parse(status.httpInput.getReader(getQuickURI()), SbsSearch.class);
                 if (isCancelled()) {
                     return null;
                 }
-                search.searchOffset = offset;
                 if (search.entries == null) {
                     search.entries = new ArrayList<>();
                 }
-                entries = search.entries.size();
-                foundEpisodes += entries;
-                updateProgress(foundEpisodes, loadedEpisodes);
+                Platform.runLater(() -> {
+                    status.sbsEpisodes.addSearch(search);
+                    panels.sbsButtons.setDisable(false);
+                });
+                LOGGER.fine("SbsQuickSearch " + search.entries.size() + " time " + (System.currentTimeMillis() - start));
+            } else {
+                for (String channel : CHANNELS) {
+                    int offset = 0;
+                    int entries = 0;
+                    do {
+                        SbsSearch search = JsonConstructiveParser.parse(status.httpInput.getReader(getURI(channel, offset)), SbsSearch.class);
+                        if (isCancelled()) {
+                            return null;
+                        }
+                        search.searchOffset = offset;
+                        if (search.entries == null) {
+                            search.entries = new ArrayList<>();
+                        }
+                        entries = search.entries.size();
+                        foundEpisodes += entries;
+                        updateProgress(foundEpisodes, loadedEpisodes);
 
-                if (offset == 0) { //first 500
-                    Platform.runLater(() -> {
-                        status.sbsEpisodes.addSearch(search);
-                        panels.sbsButtons.setDisable(false);
-                    });
-                    if (quickUpdate) {
-                        break;
-                    }
-                } else {
-                    Platform.runLater(() -> {
-                        status.sbsEpisodes.addSearch(search);
-                    });
+                        if (offset == 0) { //first 500
+                            Platform.runLater(() -> {
+                                status.sbsEpisodes.addSearch(search);
+                                panels.sbsButtons.setDisable(false);
+                            });
+                        } else {
+                            Platform.runLater(() -> {
+                                status.sbsEpisodes.addSearch(search);
+                            });
+                        }
+
+                        LOGGER.fine("SbsSearch " + channel + " Offset " + offset + " Size " + search.entries.size() + " time " + (System.currentTimeMillis() - start));
+                        offset += INCREMENT;
+                    } while (entries > 0);
                 }
-
-                LOGGER.fine("SbsSearch " + offset + " " + search.entries.size() + " time " + (System.currentTimeMillis() - start));
-                offset += INCREMENT;
-            } while (entries > 0);
-            if (!quickUpdate) {
                 status.pruneSbsSeries();
+                LOGGER.fine("Sbs episodes " + status.sbsEpisodes.episodes.size());
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "SBS Search Failed", e);
@@ -102,11 +116,20 @@ public class SbsTask extends Task<Void> {
         return null;
     }
 
-    public static URI getURI(int offset) throws Exception {
+    public static URI getQuickURI() throws Exception {
         URI uri = new URI("https",
                 "www.sbs.com.au",
                 "/api/video_feed/f/Bgtm9B/sbs-section-programs/",
-                "range=" + (offset + 1) + "-" + (offset + INCREMENT),
+                "range=1-100",
+                null);
+        return uri;
+    }
+
+    public static URI getURI(String channel, int offset) throws Exception {
+        URI uri = new URI("https",
+                "www.sbs.com.au",
+                "/api/video_feed/f/Bgtm9B/sbs-section-programs/",
+                "byCategories=Channel/" + channel + "&range=" + (offset + 1) + "-" + (offset + INCREMENT),
                 null);
         return uri;
     }
