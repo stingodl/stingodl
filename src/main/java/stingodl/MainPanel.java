@@ -121,6 +121,9 @@ public class MainPanel extends VBox {
             if (epDownloader != null) {
                 epDownloader.cancel();
             }
+            if (status.sbsTask != null) {
+                status.sbsTask.cancel();
+            }
         });
         Label padding = new Label();
         padding.setMaxWidth(Double.MAX_VALUE);
