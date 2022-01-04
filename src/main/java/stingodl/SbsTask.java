@@ -34,7 +34,7 @@ public class SbsTask extends Task<Void> {
     static final Logger LOGGER = Logger.getLogger(SbsTask.class.getName());
     static final int INCREMENT = 500;
     static final int INDICITIVE_SIZE = 13000;
-    static final String[] CHANNELS = new String[] {"SBS1","SBS+World+Movies","Web+Exclusive","SBS+VICELAND","SBS+Food"};
+    static final String[] CHANNELS = new String[] {"SBS1","NITV","SBS+World+Movies","Web+Exclusive","SBS+VICELAND","SBS+Food"};
     Thread[] thread = new Thread[CHANNELS.length];
     int loadedEpisodes = 0;
     int foundEpisodes = 0;
