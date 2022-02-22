@@ -2,3 +2,6 @@
 jfx
 out
 .idea
+resource
+*.json
+*.DS_Store

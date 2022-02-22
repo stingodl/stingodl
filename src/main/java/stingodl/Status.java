@@ -206,14 +206,21 @@ public class Status {
     public String testFFmpeg() {
         config.ffmpegCommandType = "null";
         config.ffmpegVersion = null;
-
         if ("macos64".equals(config.os) || "win64".equals(config.os)) {
-            File pkg = new File(System.getProperty("java.home") + System.getProperty("file.separator") + "ffmpeg" + config.osExe);
-            if (pkg.isFile()) {
-                config.ffmpegVersion = processFFmpeg(pkg.toString());
-                if (config.ffmpegVersion != null) {
-                    config.ffmpegCommandType = "pkg";
-                    return "StingoDL package version " + config.ffmpegVersion;
+            // Test to see if we are running inside a jpackage native platform package
+            File ffmpeg = new File(System.getProperty("java.home"));
+            while ((ffmpeg != null) && (!ffmpeg.getName().equals("runtime"))) {
+                ffmpeg = ffmpeg.getParentFile();
+            }
+            if (ffmpeg != null) { // we are running in a jpackage native platform package
+                ffmpeg = new File(new File(ffmpeg.getParentFile(), "app"), "ffmpeg" + config.osExe);
+                if (ffmpeg.isFile()) {
+                    config.ffmpegVersion = processFFmpeg(ffmpeg.toString());
+                    if (config.ffmpegVersion != null) {
+                        config.ffmpegCommandType = "pkg";
+                        LOGGER.fine("Running in jpackage native platform package");
+                        return "StingoDL package version " + config.ffmpegVersion;
+                    }
                 }
             }
         }
@@ -221,6 +228,7 @@ public class Status {
         config.ffmpegVersion = processFFmpeg("ffmpeg");
         if (config.ffmpegVersion != null) {
             config.ffmpegCommandType = "global";
+            LOGGER.fine("Running with global Java installation");
             return "Installed global version " + config.ffmpegVersion;
         }
 
