@@ -69,7 +69,7 @@ public class M3u8 {
                 se.expiry = ep.expireDate.substring(0, 10);
             }
             se.thumbnailUrl = ep.thumbnail;
-            LOGGER.fine("ABC episode " + ep.title);
+            LOGGER.fine("ABC episode " + ep);
             for (AbcPlay p : ep.playlist) {
                 if (p.type.equals("program")) {
                     String url = p.streams.hls.hd;
@@ -211,6 +211,7 @@ public class M3u8 {
             if (l.equals("#EXTM3U")) {
                 l = reader.readLine();
                 while (l != null) {
+                    LOGGER.fine(l);
                     if (l.startsWith("#EXT-X")) {
                         segments.addExtX(new ExtX(l));
                     } else if (l.startsWith("#EXTINF:")) {
@@ -223,7 +224,7 @@ public class M3u8 {
                 }
             } else {
                 while (l != null) {
-//                    System.out.println(l);
+                    LOGGER.fine(l);
                     l = reader.readLine();
                 }
             }

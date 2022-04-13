@@ -28,6 +28,6 @@ public class AbcPlay {
 
     @Override
     public String toString() {
-        return "Play Type: " + type;
+        return "Play Type: " + type + " " + streams + " " + captions;
     }
 }

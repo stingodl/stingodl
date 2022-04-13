@@ -36,21 +36,28 @@ public class TsDecryptInputStream extends InputStream {
     byte[] out = new byte[16];
     int lastReadLength = -1;
     int offset = 0;
+    boolean encrypted = true;
+    boolean atSyncByte = false;
 
     public TsDecryptInputStream(InputStream is, byte[] key, int ivInt) throws Exception {
         this.is = is;
-        if (key.length != 16) {
-            System.out.println("Key " + new String(key));
+        if (key == null) {
+            encrypted = false;
         }
-        byte[] iv = new byte[16];
-        for (int i = 0; i < 14; i++) {
-            iv[i] = 0;
+        if (encrypted) {
+            if (key.length != 16) {
+                System.out.println("Key " + new String(key));
+            }
+            byte[] iv = new byte[16];
+            for (int i = 0; i < 14; i++) {
+                iv[i] = 0;
+            }
+            iv[14] = (byte) (ivInt >> 8);
+            iv[15] = (byte) ivInt;
+            cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(key, "AES"), new IvParameterSpec(iv));
+            decryptBlock();
         }
-        iv[14] = (byte)(ivInt >> 8);
-        iv[15] = (byte)ivInt;
-        cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-        cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(key, "AES"), new IvParameterSpec(iv));
-        decryptBlock();
     }
 
     private int decryptBlock() throws IOException {
@@ -79,29 +86,50 @@ public class TsDecryptInputStream extends InputStream {
     }
 
     public void seekSyncByte(int syncByte) throws IOException {
-        while (out[offset] != syncByte) {
+        if (encrypted) {
+            while (out[offset] != syncByte) {
 //            System.out.println("Seek " + offset);
-            if (offset < 15) {
-                offset++;
-            } else {
-                offset = 0;
-                if (decryptBlock() == 0) {
-                    throw new IOException("No Sync Byte found");
+                if (offset < 15) {
+                    offset++;
+                } else {
+                    offset = 0;
+                    if (decryptBlock() == 0) {
+                        throw new IOException("No Sync Byte found");
+                    }
                 }
+            }
+        } else {
+            int b = is.read();
+            while ((b != TsPacket.SYNC_BYTE) && (b >= 0)) {
+                b = is.read();
+            }
+            if (b < 0) {
+                throw new IOException("No Sync Byte found");
+            } else {
+                atSyncByte = true;
             }
         }
     }
 
     @Override
     public int read() throws IOException {
-        if (offset >= out.length) {
-            if (decryptBlock() == 0) { //at end
-                return -1;
+        if (encrypted) {
+            if (offset >= out.length) {
+                if (decryptBlock() == 0) { //at end
+                    return -1;
+                } else {
+                    offset = 0;
+                }
+            }
+            return out[offset++] & 0xff;
+        } else {
+            if (atSyncByte) {
+                atSyncByte = false;
+                return TsPacket.SYNC_BYTE;
             } else {
-                offset = 0;
+                return is.read();
             }
         }
-        return out[offset++] & 0xff;
     }
 
     @Override

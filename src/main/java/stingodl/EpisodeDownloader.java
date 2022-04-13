@@ -215,7 +215,7 @@ public class EpisodeDownloader extends Task<Background> {
             throw new RuntimeException("Requested resolution not available");
         }
         HlsSegments segments = M3u8.getSegments(se, best.url, status.httpInput);
-//        System.out.println("Key URI " + segments.keyURI);
+        LOGGER.fine("Key URI " + segments.keyURI);
         int segCount = segments.segList.size();
         LOGGER.fine(best + " * segments: " + segCount);
         File outDir = new File((status.config.downloadDir == null) ?
@@ -265,8 +265,11 @@ public class EpisodeDownloader extends Task<Background> {
         }
 
         try {
-            InputStream keyStream = status.httpInput.getInputStream(new URI(segments.keyURI));
-            byte[] key = keyStream.readAllBytes();
+            byte[] key = null;
+            if (segments.keyURI != null) {
+                InputStream keyStream = status.httpInput.getInputStream(new URI(segments.keyURI));
+                key = keyStream.readAllBytes();
+            }
             p = pb.start();
             FfmpegOutReader outReader = new FfmpegOutReader(p.getInputStream());
             outReader.start();
