@@ -27,7 +27,7 @@ import java.util.logging.Logger;
 public class SbsSeries implements Comparable<SbsSeries> {
     public String series;
     public String genre;
-    public String seriesId;
+//    public String seriesId;
     public String seriesKey;
     public String latestDate = "1970-01-01 00:00:00";
     public Map<String, SbsEpisode> episodes = new HashMap<>();
@@ -48,39 +48,39 @@ public class SbsSeries implements Comparable<SbsSeries> {
         Determine the seriesId and series name from the list of episodes
      */
     public void discoverMeta() {
-        Set<String> seriesIdSet = new HashSet<>();
+//        Set<String> seriesIdSet = new HashSet<>();
         Set<String> seriesNameSet = new HashSet<>();
-        Set<String> seriesUniqueSet = new HashSet<>();
+//        Set<String> seriesUniqueSet = new HashSet<>();
         for (SbsEpisode ep: episodes.values()) {
-            if (ep.seriesId != null) {
-                seriesIdSet.add(ep.seriesId);
-            }
+//            if (ep.seriesId != null) {
+//                seriesIdSet.add(ep.seriesId);
+//            }
             if (ep.series != null) {
                 seriesNameSet.add(ep.series);
             }
-            if (ep.seriesUnique != null) {
-                seriesUniqueSet.add(ep.seriesUnique);
-            }
+//            if (ep.seriesUnique != null) {
+//                seriesUniqueSet.add(ep.seriesUnique);
+//            }
         }
-        if (seriesIdSet.size() == 1) {
-            seriesId = seriesIdSet.toArray(new String[1])[0];
-        } else if (seriesIdSet.size() > 1) {
-            LOGGER.severe("Series contains multiple SeriesId");
-        }
+//        if (seriesIdSet.size() == 1) {
+//            seriesId = seriesIdSet.toArray(new String[1])[0];
+//        } else if (seriesIdSet.size() > 1) {
+//            LOGGER.severe("Series contains multiple SeriesId");
+//        }
         if (seriesNameSet.size() == 1) {
             series = seriesNameSet.toArray(new String[1])[0];
-        } else { // no names or multiple
-            if (seriesUniqueSet.size() == 1) {
-                series = formName(seriesUniqueSet.toArray(new String[1])[0]);
-            }
+//        } else { // no names or multiple
+//            if (seriesUniqueSet.size() == 1) {
+//                series = formName(seriesUniqueSet.toArray(new String[1])[0]);
+//            }
         }
         if (series == null) {
             if (episodes.size() == 1) { // no series name or unique series
                 series = episodes.values().toArray(new SbsEpisode[1])[0].title;
             } else if (seriesNameSet.size() > 1) {
                 series = seriesNameSet.toArray(new String[seriesNameSet.size()])[0];
-            } else if (seriesUniqueSet.size() > 1) {
-                series = formName(seriesUniqueSet.toArray(new String[seriesUniqueSet.size()])[0]);
+ //           } else if (seriesUniqueSet.size() > 1) {
+ //               series = formName(seriesUniqueSet.toArray(new String[seriesUniqueSet.size()])[0]);
             } else {
                 series = episodes.values().toArray(new SbsEpisode[1])[0].title;
             }

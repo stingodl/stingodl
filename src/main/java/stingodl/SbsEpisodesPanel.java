@@ -55,12 +55,12 @@ public class SbsEpisodesPanel extends VBox {
         topRow.getChildren().add(seriesLabel);
         SCheckBox seriesCb = new SCheckBox();
         seriesCb.network = Network.SBS;
-        seriesCb.href = series.seriesId;
+        seriesCb.href = series.seriesKey;
         // seriesId can be null, which causes heaps of problems
         if (seriesCb.href == null) {
             seriesCb.setDisable(true);
         } else {
-            seriesCb.setSelected(status.seriesSelection.isSelected(Network.SBS, series.seriesId));
+            seriesCb.setSelected(status.seriesSelection.isSelected(Network.SBS, series.seriesKey));
             seriesCb.setOnAction(actionEvent -> {
                 if (seriesCb.isSelected()) {
                     status.seriesSelection.add(Network.SBS, seriesCb.href, series.series);

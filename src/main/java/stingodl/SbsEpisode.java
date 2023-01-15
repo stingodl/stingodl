@@ -31,8 +31,8 @@ import java.util.logging.Logger;
 public class SbsEpisode implements Comparable<SbsEpisode> {
     public String id;
     public String series;
-    public String seriesUnique;
-    public String seriesId;
+//    public String seriesUnique;
+//    public String seriesId;
     public String seriesKey;
     public boolean film = false;
     public List<String> genres;
@@ -106,15 +106,16 @@ public class SbsEpisode implements Comparable<SbsEpisode> {
         }
 
         if (!film) {
-            if ((entry.pl1$seriesId != null) && (entry.pl1$seriesId.trim().length() > 0)) {
-                seriesId = entry.pl1$seriesId;
-            }
+//            String seriesId = null;
+//            if ((entry.pl1$seriesId != null) && (entry.pl1$seriesId.trim().length() > 0)) {
+//                seriesId = entry.pl1$seriesId;
+//            }
             if ((entry.pl1$programName != null) && (entry.pl1$programName.trim().length() > 0)) {
                 series = entry.pl1$programName;
             }
-            if (seriesId != null) {
-                seriesKey = seriesId;
-            } else if (series != null) {
+//            if (seriesId != null) {
+//                seriesKey = seriesId;
+            if (series != null) {
                 seriesKey = series;
             } else {
                 seriesKey = title;

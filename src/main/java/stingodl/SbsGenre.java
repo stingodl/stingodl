@@ -29,6 +29,8 @@ public class SbsGenre implements Comparable<SbsGenre> {
     public Map<String, SbsSeries> seriesMap = new HashMap<>();
     public Map<String, SbsEpisode> episodeMap = new HashMap<>();
 
+    public boolean dateSorted = true;
+
     public SbsGenre(String genre, boolean film) {
         this.genre = genre;
         this.film = film;

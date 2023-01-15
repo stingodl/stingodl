@@ -58,14 +58,15 @@ public class SbsSeriesPanel extends VBox {
             dateSortedPanel.setVisible(false);
             nameButton.setDisable(true);
             dateButton.setDisable(false);
+            genre.dateSorted = false;
         });
         nameDateRow.getChildren().add(nameButton);
-        dateButton.setDisable(true);
         dateButton.setOnAction(actionEvent -> {
             dateSortedPanel.setVisible(true);
             nameSortedPanel.setVisible(false);
             dateButton.setDisable(true);
             nameButton.setDisable(false);
+            genre.dateSorted = true;
         });
         Label pad = new Label();
         pad.setMaxWidth(Double.MAX_VALUE);
@@ -75,7 +76,13 @@ public class SbsSeriesPanel extends VBox {
         this.getChildren().add(nameDateRow);
         layoutPanel(status, panels, dateSortedPanel, genre.getDateSortedSeries());
         layoutPanel(status, panels, nameSortedPanel, genre.getNameSortedSeries());
-        nameSortedPanel.setVisible(false);
+        if (genre.dateSorted) {
+            dateButton.setDisable(true);
+            nameSortedPanel.setVisible(false);
+        } else {
+            nameButton.setDisable(true);
+            dateSortedPanel.setVisible(false);
+        }
         cardPanel.getChildren().addAll(dateSortedPanel, nameSortedPanel);
         this.getChildren().add(cardPanel);
     }
