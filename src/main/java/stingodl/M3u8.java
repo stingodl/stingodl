@@ -21,6 +21,9 @@
  ******************************************************************************/
 package stingodl;
 
+import com.eclipsesource.json.Json;
+import com.eclipsesource.json.JsonValue;
+import com.eclipsesource.json.PrettyPrint;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -28,7 +31,10 @@ import org.w3c.dom.NodeList;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.Reader;
 import java.io.BufferedReader;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
@@ -109,13 +115,22 @@ public class M3u8 {
         String m3u8 = null;
         if (uri != null) {
             try {
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    JsonValue val = Json.parse(status.httpInput.getReader(uri));
+                    Writer writer = new StringWriter();
+                    val.writeTo(writer, PrettyPrint.indentWithSpaces(3));
+                    LOGGER.fine("SBS episode JSON: " + writer.toString());
+                }
                 BufferedReader reader = new BufferedReader(status.httpInput.getReader(uri));
                 params = JsonConstructiveParser.parse(reader, SbsPlayerParams.class);
                 LOGGER.fine("SBS Player params " + params);
                 if (params != null) {
+                    if (LOGGER.isLoggable(Level.FINE)) {
+                        displayUri(params.releaseUrls.htmlandroid, status);
+                    }
                     se.title = params.videoTitle;
                     DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-                    Document doc = db.parse(params.releaseUrls.html);
+                    Document doc = db.parse(params.releaseUrls.htmlandroid);
                     NodeList list = doc.getElementsByTagName("video");
                     Node n = list.item(0);
                     m3u8 = n.getAttributes().getNamedItem("src").getTextContent();
@@ -149,7 +164,6 @@ public class M3u8 {
             if (l.equals("#EXTM3U")) {
                 l = reader.readLine();
                 while (l != null) {
-//                    System.out.println(l);
                     if (l.startsWith("#EXT-X-STREAM-INF:")) {
                         inf = parseStreamInf(l.substring("#EXT-X-STREAM-INF:".length()));
                     } else {
@@ -322,6 +336,22 @@ public class M3u8 {
             return "StreamInf bw: " + bandwidth +
                     " resW: " + resolutionW + " resH: " + resolutionH +
                     " cod: " + codecs + " cap: " + closedCations;
+        }
+    }
+
+    private static void displayUri(String uri, Status status) {
+        try {
+            Reader reader = status.httpInput.getReader(new URI(uri));
+            StringBuilder buf = new StringBuilder();
+            int c = reader.read();
+            while (c >= 0) {
+                buf.append((char)c);
+                c = reader.read();
+            }
+            reader.close();
+            LOGGER.fine(buf.toString());
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }

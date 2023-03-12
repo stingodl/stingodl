@@ -96,9 +96,13 @@ public class EpisodePanel extends VBox {
         }
         title.setText(se.title);
         desc.setText(se.description);
-        if (se.thumbnailUrl != null) {
-            thumbnail = new ImageView(new Image(se.thumbnailUrl, 640, 360, true, true, true));
-            VBox.setMargin(thumbnail, new Insets(8,0,0,0));
+        if ((se.thumbnailUrl != null) && !se.thumbnailUrl.isEmpty()) {
+            try {
+                thumbnail = new ImageView(new Image(se.thumbnailUrl, 640, 360, true, true, true));
+                VBox.setMargin(thumbnail, new Insets(8, 0, 0, 0));
+            } catch (Exception ex) {
+                LOGGER.log(Level.SEVERE, se.thumbnailUrl, ex);
+            }
         }
         this.getChildren().addAll(title, desc);
         expiry.setText(se.expiry.substring(0,10));

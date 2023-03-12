@@ -22,10 +22,10 @@
 package stingodl;
 
 public class SbsReleaseUrls {
-    public String html;
+    public String htmlandroid;
 
     @Override
     public String toString() {
-        return "SBS Release URLs: " + html;
+        return "SBS Release URLs: " + htmlandroid;
     }
 }
