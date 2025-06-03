@@ -75,6 +75,14 @@ public class ConfigDialog extends VBox {
     ResolutionRadioButton rb1080 = new ResolutionRadioButton(1080,"1080");
     ResolutionRadioButton rbUnlimited = new ResolutionRadioButton(Integer.MAX_VALUE,"Unlimited");
     ToggleGroup toggleGroup = new ToggleGroup();
+    Label prioritySubtitleLabel = new Label("Priority Subtitle");
+    PrioritySubtitleRadioButton en = new PrioritySubtitleRadioButton("en","English");
+    PrioritySubtitleRadioButton ar = new PrioritySubtitleRadioButton("ar","Arabic");
+    PrioritySubtitleRadioButton ko = new PrioritySubtitleRadioButton("ko","Korean");
+    PrioritySubtitleRadioButton vi = new PrioritySubtitleRadioButton("en","Vietnamese");
+    PrioritySubtitleRadioButton zhs = new PrioritySubtitleRadioButton("zhs","Simplified Chinese");
+    PrioritySubtitleRadioButton zht = new PrioritySubtitleRadioButton("zht","Traditional Chinese");
+    ToggleGroup subtitleToggleGroup = new ToggleGroup();
     ScrollPane seriesScroll = new ScrollPane();
 
     public ConfigDialog(Window window, Status status) {
@@ -246,6 +254,56 @@ public class ConfigDialog extends VBox {
         });
         rowRes.getChildren().addAll(resolutionLabel, rb240, rb360, rb720, rb1080, rbUnlimited);
         getChildren().add(rowRes);
+
+        HBox rowSub0 = new HBox();
+        HBox rowSub1 = new HBox();
+        HBox rowSub2 = new HBox();
+        rowSub0.setAlignment(Pos.CENTER_LEFT);
+        rowSub1.setAlignment(Pos.CENTER_LEFT);
+        rowSub2.setAlignment(Pos.CENTER_LEFT);
+        HBox.setMargin(prioritySubtitleLabel, new Insets(15, 0, 0, 10));
+        HBox.setMargin(en, new Insets(10, 0, 0, 10));
+        HBox.setMargin(ar, new Insets(10, 0, 0, 10));
+        HBox.setMargin(ko, new Insets(10, 0, 0, 10));
+        HBox.setMargin(vi, new Insets(10, 0, 0, 10));
+        HBox.setMargin(zhs, new Insets(10, 0, 0, 10));
+        HBox.setMargin(zht, new Insets(10, 0, 0, 10));
+        en.setToggleGroup(subtitleToggleGroup);
+        ar.setToggleGroup(subtitleToggleGroup);
+        ko.setToggleGroup(subtitleToggleGroup);
+        vi.setToggleGroup(subtitleToggleGroup);
+        zhs.setToggleGroup(subtitleToggleGroup);
+        zht.setToggleGroup(subtitleToggleGroup);
+        switch (status.config.prioritySubtitle) {
+            case "en" :
+                en.setSelected(true);
+                break;
+            case "ar" :
+                ar.setSelected(true);
+                break;
+            case "ko" :
+                ko.setSelected(true);
+                break;
+            case "zhs" :
+                zhs.setSelected(true);
+                break;
+            case "zht" :
+                zht.setSelected(true);
+                break;
+        }
+        subtitleToggleGroup.selectedToggleProperty().addListener(new ChangeListener<Toggle>() {
+            @Override
+            public void changed(ObservableValue<? extends Toggle> observableValue, Toggle toggle, Toggle t1) {
+                status.config.prioritySubtitle = ((PrioritySubtitleRadioButton)t1).langCode;
+                status.saveConfig();
+            }
+        });
+        rowSub0.getChildren().addAll(prioritySubtitleLabel);
+        getChildren().add(rowSub0);
+        rowSub1.getChildren().addAll(en, ar, ko, vi, zhs, zht);
+        getChildren().add(rowSub1);
+        rowSub2.getChildren().addAll(zhs, zht);
+        getChildren().add(rowSub2);
 /*
         HBox rowHevc1 = new HBox();
         rowHevc1.setAlignment(Pos.CENTER_LEFT);

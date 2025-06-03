@@ -31,6 +31,7 @@ public class Config {
 //    public boolean encodeHEVC = false;
     public int maxResulotion = Integer.MAX_VALUE;
     public int encodeHevcCrf = HEVC_DEFAULT_CRF;
+    public String prioritySubtitle = "en";
     public transient String ffmpegVersion;
     public transient String ffmpegText;
     public transient String ffmpegCommand;

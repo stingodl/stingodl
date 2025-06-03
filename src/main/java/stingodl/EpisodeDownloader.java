@@ -33,10 +33,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Collections;
-import java.util.Comparator;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -214,6 +211,8 @@ public class EpisodeDownloader extends Task<Background> {
             LOGGER.severe("Requested resolution not available: " + maxResulotion + " " + se);
             throw new RuntimeException("Requested resolution not available");
         }
+        Subtitle[] subtitles = se.subtitles.toArray(new Subtitle[se.subtitles.size()]);
+        Arrays.sort(subtitles);
         HlsSegments segments = M3u8.getSegments(se, best.url, status.httpInput);
         LOGGER.fine("Key URI " + segments.keyURI);
         int segCount = segments.segList.size();
@@ -229,29 +228,32 @@ public class EpisodeDownloader extends Task<Background> {
         args.add("-y");
         args.add("-i");
         args.add("-");
-        if (se.subtitle != null) {
+        for (Subtitle s: subtitles) {
             args.add("-i");
-            args.add(se.subtitle);
-            args.add("-c:s");
-            args.add("mov_text");
-            args.add("-metadata:s:s:0");
-            args.add("language=eng");
-            args.add("-tag:s:s:0");
-            args.add("tx3g");
+            args.add(s.url);
         }
-//        if (status.config.encodeHEVC && !best.isHEVC) {
-//            args.add("-c:v");
-//            args.add("libx265");
-//            args.add("-tag:v");
-//            args.add("hvc1");
-//            args.add("-crf");
-//            args.add(Integer.toString(status.config.encodeHevcCrf));
-//        } else {
-            args.add("-c:v");
-            args.add("copy");
-//        }
+        args.add("-map");
+        args.add("0:v");
+        args.add("-c:v");
+        args.add("copy");
+        args.add("-map");
+        args.add("0:a");
         args.add("-c:a");
         args.add("copy");
+        if (subtitles.length > 0) {
+            args.add("-c:s");
+            args.add("mov_text");
+        }
+        for (int i = 0; i < subtitles.length; i++) {
+            args.add("-map");
+            args.add((i+1) + ":s");
+            args.add("-metadata:s:s:" + i);
+            args.add("language=" + subtitles[i].language);
+            if (subtitles[i].title != null) {
+                args.add("-metadata:s:s:" + i);
+                args.add("title=\"" + subtitles[i].title + "\"");
+            }
+        }
         args.add(outFile.toString());
         LOGGER.fine(args.toString());
         ProcessBuilder pb = new ProcessBuilder(args);

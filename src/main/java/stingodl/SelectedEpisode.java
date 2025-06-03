@@ -21,7 +21,9 @@
  ******************************************************************************/
 package stingodl;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class SelectedEpisode implements Cloneable {
     public EpisodeKey key;
@@ -33,7 +35,7 @@ public class SelectedEpisode implements Cloneable {
     public String expiry;
     public String thumbnailUrl;
     public String m3u8Url;
-    public String subtitle;
+    public Set<Subtitle> subtitles = new HashSet<>();
     public List<M3u8.StreamInf> streams;
     public AbcAuth abcAuth;
 

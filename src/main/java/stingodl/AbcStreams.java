@@ -24,9 +24,10 @@ package stingodl;
 public class AbcStreams {
     public String sd;
     public String hd;
+    public String fullHd;
 
     @Override
     public String toString() {
-        return "Streams hd: " + hd + " sd: " + sd;
+        return "Streams fullHd " + fullHd + " hd: " + hd + " sd: " + sd;
     }
 }

@@ -31,10 +31,7 @@ import org.w3c.dom.NodeList;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import java.io.Reader;
-import java.io.BufferedReader;
-import java.io.StringWriter;
-import java.io.Writer;
+import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
@@ -42,6 +39,18 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class M3u8 {
+
+    static Map<String,String> iso639 = new HashMap<>();
+    static {
+        iso639.put("ar","ara");
+        iso639.put("en","eng");
+        iso639.put("fil","fil");
+        iso639.put("hi","hin");
+        iso639.put("ko","kor");
+        iso639.put("pa","pan");
+        iso639.put("vi","vie");
+        iso639.put("zh","zho");
+    }
 
     static final Logger LOGGER = Logger.getLogger(M3u8.class.getName());
 
@@ -55,6 +64,14 @@ public class M3u8 {
             LOGGER.log(Level.SEVERE, "ABC URI Invalid: " + uriStr, urise);
         }
         if (uri != null) {
+            try {
+                JsonValue val = Json.parse(status.httpInput.getReader(uri));
+                Writer writer = new StringWriter();
+                val.writeTo(writer, PrettyPrint.indentWithSpaces(3));
+                LOGGER.fine("ABC episode JSON: " + writer.toString());
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
             try {
                 ep = JsonConstructiveParser.parse(status.httpInput.getReader(uri), AbcEpisodeDetail.class);
             } catch (Exception ioe) {
@@ -78,7 +95,10 @@ public class M3u8 {
             LOGGER.fine("ABC episode " + ep);
             for (AbcPlay p : ep.playlist) {
                 if (p.type.equals("program")) {
-                    String url = p.streams.hls.hd;
+                    String url = p.streams.hls.fullHd;
+                    if (url == null) {
+                        url = p.streams.hls.hd;
+                    }
                     if (url == null) {
                         url = p.streams.hls.sd;
                     }
@@ -87,7 +107,7 @@ public class M3u8 {
                     se.m3u8Url = se.abcAuth.setQueryToken(url);
                     LOGGER.fine("Auth URL " + se.m3u8Url);
                     if (p.captions != null) {
-                        se.subtitle = p.captions.src_vtt;
+                        se.subtitles.add(new Subtitle(status.config.prioritySubtitle, "en","eng", p.captions.src_vtt, null));
                     }
                 }
             }
@@ -137,14 +157,38 @@ public class M3u8 {
                     LOGGER.fine("SBS initial m3u8: " + m3u8);
                     se.streams = getStreamInfs(m3u8, status.httpInput);
                     list = doc.getElementsByTagName("textstream");
+                    Subtitle en0 = null;
+                    Subtitle en1 = null;
                     for (int i = 0; i < list.getLength(); i++) {
                         Element sub = (Element)list.item(i);
                         String lang = sub.getAttribute("lang");
                         String type = sub.getAttribute("type");
+                        String src = sub.getAttribute("src");
                         if ("en".equals(lang) && "text/srt".equals(type)) {
-                            se.subtitle = sub.getAttribute("src");
-                            break;
+                            se.subtitles.add(new Subtitle(status.config.prioritySubtitle, "en", "eng", src, null));
+                        } else if ("text/vtt".equals(type)) {
+                            if ("en".equals(lang)) {
+                                if (src.endsWith("CD.VTT")) {
+                                    en0 = new Subtitle(status.config.prioritySubtitle, "en0", "eng", src, null);
+                                    se.subtitles.add(en0);
+                                } else {
+                                    en1 = new Subtitle(status.config.prioritySubtitle, "en1", "eng", src, null);
+                                    se.subtitles.add(en1);
+                                }
+                            } else if ("zh-hans".equalsIgnoreCase(lang)) {
+                                se.subtitles.add(new Subtitle(status.config.prioritySubtitle, "zhs", "zho", src, "Simplified"));
+                            } else if ("zh-hant".equalsIgnoreCase(lang)) {
+                                se.subtitles.add(new Subtitle(status.config.prioritySubtitle, "zht", "zho", src, "Traditional"));
+                            } else if (lang.length() == 2) {
+                                se.subtitles.add(new Subtitle(status.config.prioritySubtitle, lang, iso639.getOrDefault(lang, "und"), src, null));
+                            } else if (lang.length() == 3) {
+                                se.subtitles.add(new Subtitle(status.config.prioritySubtitle, lang, lang, src, null));
+                            }
                         }
+                    }
+                    if ((en0 != null) && (en1 != null)) {
+                        en0.title = "CC";
+                        en1.title = "Non-English only";
                     }
                 }
             } catch (Exception ioe) {
@@ -355,3 +399,4 @@ public class M3u8 {
         }
     }
 }
+
