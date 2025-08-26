@@ -157,23 +157,22 @@ public class M3u8 {
                     LOGGER.fine("SBS initial m3u8: " + m3u8);
                     se.streams = getStreamInfs(m3u8, status.httpInput);
                     list = doc.getElementsByTagName("textstream");
-                    Subtitle en0 = null;
-                    Subtitle en1 = null;
+                    Subtitle srt = null;
+                    Subtitle cc = null;
+                    Subtitle fe = null;
                     for (int i = 0; i < list.getLength(); i++) {
                         Element sub = (Element)list.item(i);
                         String lang = sub.getAttribute("lang");
                         String type = sub.getAttribute("type");
                         String src = sub.getAttribute("src");
                         if ("en".equals(lang) && "text/srt".equals(type)) {
-                            se.subtitles.add(new Subtitle(status.config.prioritySubtitle, "en", "eng", src, null));
+                            srt = new Subtitle(status.config.prioritySubtitle, "en0", "eng", src, "CC");
                         } else if ("text/vtt".equals(type)) {
                             if ("en".equals(lang)) {
-                                if (src.endsWith("CD.VTT")) {
-                                    en0 = new Subtitle(status.config.prioritySubtitle, "en0", "eng", src, null);
-                                    se.subtitles.add(en0);
-                                } else {
-                                    en1 = new Subtitle(status.config.prioritySubtitle, "en1", "eng", src, null);
-                                    se.subtitles.add(en1);
+                                if (src.endsWith("CD.VTT") || src.endsWith("CC.VTT")) {
+                                    cc = new Subtitle(status.config.prioritySubtitle, "en0", "eng", src, "CC");
+                                } else if (src.endsWith("FE.VTT")) {
+                                    fe = new Subtitle(status.config.prioritySubtitle, "en1", "eng", src, "Non-English only");
                                 }
                             } else if ("zh-hans".equalsIgnoreCase(lang)) {
                                 se.subtitles.add(new Subtitle(status.config.prioritySubtitle, "zhs", "zho", src, "Simplified"));
@@ -185,10 +184,16 @@ public class M3u8 {
                                 se.subtitles.add(new Subtitle(status.config.prioritySubtitle, lang, lang, src, null));
                             }
                         }
+                        LOGGER.fine("TextElement " + lang + " " + type + " " + se.subtitles);
                     }
-                    if ((en0 != null) && (en1 != null)) {
-                        en0.title = "CC";
-                        en1.title = "Non-English only";
+                    if (cc != null) {
+                        se.subtitles.add(cc);
+                    }
+                    if (fe != null) {
+                        se.subtitles.add(fe);
+                    }
+                    if ((srt != null) && (cc == null)) {
+                        se.subtitles.add(srt);
                     }
                 }
             } catch (Exception ioe) {

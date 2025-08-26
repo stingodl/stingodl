@@ -62,4 +62,9 @@ public class Subtitle implements Comparable<Subtitle> {
     public int hashCode() {
         return sortKey.hashCode();
     }
+
+    @Override
+    public String toString() {
+        return "Subtitle: " + sortKey + " " + priority;
+    }
 }
